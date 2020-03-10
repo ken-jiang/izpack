@@ -1029,9 +1029,10 @@ public class CompilerConfig extends Thread {
                 File relsrcfile;// = new File(src);
                 File abssrcfile; // = FileUtil.getAbsoluteFile(src, baseDir.getAbsolutePath());
                 if (src.startsWith("http")) {
-                    src = WebRepositoryAccessor.getCachedUrl(src, System.getProperty("java.io.tmpdir"));
-                    System.out.println("src = "+src);
-                    abssrcfile = new File(src);
+                    logger.info("Fetching " + src);
+                    String localFile = WebRepositoryAccessor.getCachedUrl(src, System.getProperty("java.io.tmpdir"));
+                    logger.info("Saved as " + localFile);
+                    abssrcfile = new File(localFile);
                 } else {
                     relsrcfile = new File(src);
                     abssrcfile = FileUtil.getAbsoluteFile(src, baseDir.getAbsolutePath());
