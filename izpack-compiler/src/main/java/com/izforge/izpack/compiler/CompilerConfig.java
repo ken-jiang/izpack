@@ -92,6 +92,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import com.izforge.izpack.installer.web.WebRepositoryAccessor;
 
 import java.io.*;
 import java.net.URL;
@@ -111,8 +112,7 @@ import static com.izforge.izpack.api.data.Info.EXPIRE_DATE_FORMAT;
  * @author Scott Stark
  * @version $Revision$
  */
-public class CompilerConfig extends Thread
-{
+public class CompilerConfig extends Thread {
     private static Logger logger;
 
     private static final File TEMP_DIR = FileUtils.getTempDirectory();
@@ -242,8 +242,7 @@ public class CompilerConfig extends Thread
                           PropertyManager propertyManager, MergeManager mergeManager,
                           AssertionHelper assertionHelper, RulesEngine rules, CompilerPathResolver pathResolver,
                           ResourceFinder resourceFinder, ObjectFactory factory, PlatformModelMatcher constraints,
-                          CompilerClassLoader classLoader, Handler handler)
-    {
+                          CompilerClassLoader classLoader, Handler handler) {
         this.assertionHelper = assertionHelper;
         this.rules = rules;
         this.compilerData = compilerData;
@@ -261,23 +260,17 @@ public class CompilerConfig extends Thread
         Logger rootLogger = Logger.getLogger("com.izforge.izpack");
         rootLogger.setUseParentHandlers(false);
 
-        if (handler != null)
-        {
+        if (handler != null) {
             boolean found = false;
-            for (Handler rootHandler : rootLogger.getHandlers())
-            {
-                if (rootHandler.equals(handler))
-                {
+            for (Handler rootHandler : rootLogger.getHandlers()) {
+                if (rootHandler.equals(handler)) {
                     found = true;
                     break;
-                }
-                else
-                {
+                } else {
                     rootLogger.removeHandler(rootHandler);
                 }
             }
-            if (!found)
-            {
+            if (!found) {
                 rootLogger.addHandler(handler);
             }
             rootLogger.setLevel(handler.getLevel());
@@ -291,18 +284,12 @@ public class CompilerConfig extends Thread
      * The run() method.
      */
     @Override
-    public void run()
-    {
-        try
-        {
+    public void run() {
+        try {
             executeCompiler();
-        }
-        catch (CompilerException ce)
-        {
+        } catch (CompilerException ce) {
             logger.severe(ce.getMessage());
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
         }
     }
@@ -312,13 +299,11 @@ public class CompilerConfig extends Thread
      *
      * @throws Exception Description of the Exception
      */
-    public void executeCompiler() throws Exception
-    {
+    public void executeCompiler() throws Exception {
         // normalize and test: TODO: may allow failure if we require write
         // access
         File base = new File(compilerData.getBasedir()).getAbsoluteFile();
-        if (!base.canRead() || !base.isDirectory())
-        {
+        if (!base.canRead() || !base.isDirectory()) {
             throw new CompilerException("Invalid base directory: " + base);
         }
 
@@ -370,34 +355,28 @@ public class CompilerConfig extends Thread
      *
      * @param packager the packager
      */
-    protected void setPackager(IPackager packager)
-    {
+    protected void setPackager(IPackager packager) {
         this.packager = packager;
     }
 
-    private void addInstallerRequirement(IXMLElement data) throws CompilerException
-    {
+    private void addInstallerRequirement(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addInstallerRequirement", CompilerListener.BEGIN, data);
         IXMLElement root = data.getFirstChildNamed("installerrequirements");
         List<InstallerRequirement> installerrequirements = new ArrayList<InstallerRequirement>();
 
-        if (root != null)
-        {
+        if (root != null) {
             List<IXMLElement> installerrequirementsels = root
                     .getChildrenNamed("installerrequirement");
-            for (IXMLElement installerrequirement : installerrequirementsels)
-            {
+            for (IXMLElement installerrequirement : installerrequirementsels) {
                 InstallerRequirement basicInstallerCondition = new InstallerRequirement();
                 String conditionId = parseConditionAttribute(installerrequirement);
-                if (conditionId == null)
-                {
-                  assertionHelper.parseError(installerrequirement, "Missing condition attribute");
+                if (conditionId == null) {
+                    assertionHelper.parseError(installerrequirement, "Missing condition attribute");
                 }
                 basicInstallerCondition.setCondition(conditionId);
                 String message = installerrequirement.getAttribute("message");
-                if (message == null)
-                {
-                  assertionHelper.parseError(installerrequirement, "Missing message attribute");
+                if (message == null) {
+                    assertionHelper.parseError(installerrequirement, "Missing message attribute");
                 }
                 basicInstallerCondition.setMessage(message);
                 installerrequirements.add(basicInstallerCondition);
@@ -407,19 +386,16 @@ public class CompilerConfig extends Thread
         notifyCompilerListener("addInstallerRequirement", CompilerListener.END, data);
     }
 
-    private void loadPackagingInformation(IXMLElement data) throws CompilerException
-    {
+    private void loadPackagingInformation(IXMLElement data) throws CompilerException {
         notifyCompilerListener("loadPackager", CompilerListener.BEGIN, data);
         // Initialisation
         // REFACTOR : Moved packager initialisation to provider
         IXMLElement root = data.getFirstChildNamed("packaging");
         IXMLElement packagerElement = null;
-        if (root != null)
-        {
+        if (root != null) {
             packagerElement = root.getFirstChildNamed("packager");
 
-            if (packagerElement != null)
-            {
+            if (packagerElement != null) {
                 Class<IPackager> packagerClass = classLoader.loadClass(
                         xmlCompilerHelper.requireAttribute(packagerElement, "class"), IPackager.class);
                 packagerClassname = packagerClass.getName();
@@ -427,19 +403,16 @@ public class CompilerConfig extends Thread
 
             IXMLElement unpacker = root.getFirstChildNamed("unpacker");
 
-            if (unpacker != null)
-            {
+            if (unpacker != null) {
                 Class<IUnpacker> unpackerClass = classLoader.loadClass(
                         xmlCompilerHelper.requireAttribute(unpacker, "class"), IUnpacker.class);
                 unpackerClassname = unpackerClass.getName();
             }
         }
         packager = factory.create(packagerClassname, IPackager.class);
-        if (packagerElement != null)
-        {
+        if (packagerElement != null) {
             IXMLElement options = packagerElement.getFirstChildNamed("options");
-            if (options != null)
-            {
+            if (options != null) {
                 packager.addConfigurationInformation(options);
             }
         }
@@ -448,8 +421,7 @@ public class CompilerConfig extends Thread
         notifyCompilerListener("loadPackager", CompilerListener.END, data);
     }
 
-    public boolean wasSuccessful()
-    {
+    public boolean wasSuccessful() {
         return compiler.wasSuccessful();
     }
 
@@ -459,17 +431,14 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void addConsolePrefs(IXMLElement data) throws CompilerException
-    {
+    private void addConsolePrefs(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addConsolePrefs", CompilerListener.BEGIN, data);
         // We get the IXMLElement & the attributes
         IXMLElement consolePrefsElement = data.getFirstChildNamed("consoleprefs");
         ConsolePrefs prefs = new ConsolePrefs();
-        if (consolePrefsElement != null)
-        {
+        if (consolePrefsElement != null) {
             IXMLElement detectTerminalTag = consolePrefsElement.getFirstChildNamed("detectTerminal");
-            if (detectTerminalTag != null)
-            {
+            if (detectTerminalTag != null) {
                 prefs.enableConsoleReader = Boolean.parseBoolean(xmlCompilerHelper.requireContent(detectTerminalTag));
             }
         }
@@ -483,56 +452,47 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void addGUIPrefs(IXMLElement data) throws CompilerException
-    {
+    private void addGUIPrefs(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addGUIPrefs", CompilerListener.BEGIN, data);
         // We get the IXMLElement & the attributes
         IXMLElement guiPrefsElement = data.getFirstChildNamed("guiprefs");
         GUIPrefs prefs = new GUIPrefs();
-        if (guiPrefsElement != null)
-        {
+        if (guiPrefsElement != null) {
             prefs.resizable = xmlCompilerHelper.requireYesNoAttribute(guiPrefsElement, "resizable");
             prefs.width = xmlCompilerHelper.requireIntAttribute(guiPrefsElement, "width");
             prefs.height = xmlCompilerHelper.requireIntAttribute(guiPrefsElement, "height");
 
             // Look and feel mappings
-            for (IXMLElement lafNode : guiPrefsElement.getChildrenNamed("laf"))
-            {
+            for (IXMLElement lafNode : guiPrefsElement.getChildrenNamed("laf")) {
                 String lafName = xmlCompilerHelper.requireAttribute(lafNode, "name");
                 xmlCompilerHelper.requireChildNamed(lafNode, "os");
 
                 LookAndFeel lookAndFeel = new LookAndFeel(lafName);
 
-                for (IXMLElement parameterNode : lafNode.getChildrenNamed("param"))
-                {
+                for (IXMLElement parameterNode : lafNode.getChildrenNamed("param")) {
                     String name = xmlCompilerHelper.requireAttribute(parameterNode, "name");
                     String value = xmlCompilerHelper.requireAttribute(parameterNode, "value");
                     lookAndFeel.setParameter(name, value);
                 }
 
-                for (IXMLElement osNode : lafNode.getChildrenNamed("os"))
-                {
+                for (IXMLElement osNode : lafNode.getChildrenNamed("os")) {
                     String osName = xmlCompilerHelper.requireAttribute(osNode, "family");
                     prefs.lookAndFeelMapping.put(osName, lookAndFeel);
                 }
             }
             // Load modifier
-            for (IXMLElement ixmlElement : guiPrefsElement.getChildrenNamed("modifier"))
-            {
+            for (IXMLElement ixmlElement : guiPrefsElement.getChildrenNamed("modifier")) {
                 String key = xmlCompilerHelper.requireAttribute(ixmlElement, "key");
                 String value = xmlCompilerHelper.requireAttribute(ixmlElement, "value");
                 prefs.modifier.put(key, value);
 
             }
-            for (LookAndFeel lookAndFeel : prefs.lookAndFeelMapping.values())
-            {
+            for (LookAndFeel lookAndFeel : prefs.lookAndFeelMapping.values()) {
                 String lafName = lookAndFeel.getName();
                 LookAndFeels feels = LookAndFeels.lookup(lafName);
-                if (feels != null)
-                {
+                if (feels != null) {
                     List<Mergeable> mergeableList = Collections.emptyList();
-                    switch (feels)
-                    {
+                    switch (feels) {
                         case KUNSTSTOFF:
                             mergeableList = pathResolver.getMergeableFromPackageName("com/incors/plaf");
                             break;
@@ -549,13 +509,10 @@ public class CompilerConfig extends Thread
                         default:
                             assertionHelper.parseError(guiPrefsElement, "Unrecognized Look and Feel: " + lafName);
                     }
-                    for (Mergeable mergeable : mergeableList)
-                    {
+                    for (Mergeable mergeable : mergeableList) {
                         mergeManager.addResourceToMerge(mergeable);
                     }
-                }
-                else
-                {
+                } else {
                     assertionHelper.parseError(guiPrefsElement, "Unrecognized Look and Feel: " + lafName);
                 }
             }
@@ -571,13 +528,11 @@ public class CompilerConfig extends Thread
      * @throws CompilerException if a required attribute is not present
      * @throws IOException       if the jar cannot be read
      */
-    private void addJars(IXMLElement data) throws IOException
-    {
+    private void addJars(IXMLElement data) throws IOException {
         notifyCompilerListener("addJars", CompilerListener.BEGIN, data);
         final String minimalJavaVersion = compilerData.getExternalInfo().getJavaVersion();
         final boolean javaVersionStrict = compilerData.getExternalInfo().getJavaVersionStrict();
-        for (IXMLElement ixmlElement : data.getChildrenNamed("jar"))
-        {
+        for (IXMLElement ixmlElement : data.getChildrenNamed("jar")) {
             String src = getSrcSubstitutedAttributeValue(ixmlElement);
 
             // all external jars contents regardless of stage type are merged into the installer
@@ -588,16 +543,12 @@ public class CompilerConfig extends Thread
             URL url = resourceFinder.findProjectResource(src, "Jar file", ixmlElement);
             boolean uninstaller = "both".equalsIgnoreCase(stage) || "uninstall".equalsIgnoreCase(stage);
             compiler.checkJarVersions(new File(url.getFile()), minimalJavaVersion);
-            if (!compiler.getJavaVersionCorrect())
-            {
-                if (javaVersionStrict)
-                {
+            if (!compiler.getJavaVersionCorrect()) {
+                if (javaVersionStrict) {
                     throw new CompilerException(url.getFile() + " does not meet the minimal version requirements."
                             + "\nRequired minimal target Java version: " + minimalJavaVersion
                             + "\nFound class target Java version: 1." + compiler.getJavaVersionExpected());
-                }
-                else
-                {
+                } else {
                     logger.warning(url.getFile() + " does not meet the minimal version requirements which may cause issues during runtime."
                             + "\nRequired minimal target Java version: " + minimalJavaVersion
                             + "\nFound class target Java version: 1." + compiler.getJavaVersionExpected());
@@ -614,16 +565,13 @@ public class CompilerConfig extends Thread
      * @param data the XML install data
      * @throws IOException if the jar cannot be read
      */
-    private void addPanelJars(IXMLElement data) throws IOException
-    {
+    private void addPanelJars(IXMLElement data) throws IOException {
         notifyCompilerListener("addPanelJars", CompilerListener.BEGIN, data);
 
         IXMLElement panels = xmlCompilerHelper.requireChildNamed(data, "panels");
-        for (IXMLElement panel : panels.getChildrenNamed("panel"))
-        {
+        for (IXMLElement panel : panels.getChildrenNamed("panel")) {
             URL url = getPanelJarURL(panel);
-            if (url != null)
-            {
+            if (url != null) {
                 compiler.addJar(url, false);
             }
         }
@@ -637,8 +585,7 @@ public class CompilerConfig extends Thread
      * @return the panel jar URL, or <tt>null</tt> if there is none
      * @throws CompilerException if a jar is specified but cannot be found
      */
-    private URL getPanelJarURL(IXMLElement panel) throws CompilerException
-    {
+    private URL getPanelJarURL(IXMLElement panel) throws CompilerException {
         return getJarResourceURL(panel, "Panel jar file");
     }
 
@@ -649,8 +596,7 @@ public class CompilerConfig extends Thread
      * @return the listener jar URL, or <tt>null</tt> if there is none
      * @throws CompilerException if a jar is specified but cannot be found
      */
-    private URL getListenerJarURL(IXMLElement listener) throws CompilerException
-    {
+    private URL getListenerJarURL(IXMLElement listener) throws CompilerException {
         return getJarResourceURL(listener, "Listener jar file");
     }
 
@@ -662,11 +608,9 @@ public class CompilerConfig extends Thread
      * @return the resource URL, or <tt>null</tt> if the attribute is not set
      * @throws CompilerException if an attribute value exists, but the corresponding resource cannot be found
      */
-    private URL getJarResourceURL(IXMLElement element, String description) throws CompilerException
-    {
+    private URL getJarResourceURL(IXMLElement element, String description) throws CompilerException {
         String value = element.getAttribute("jar");
-        if (!StringUtils.isEmpty(value))
-        {
+        if (!StringUtils.isEmpty(value)) {
             return resourceFinder.findIzPackResource(value, description, element, false);
         }
         return null;
@@ -676,24 +620,18 @@ public class CompilerConfig extends Thread
      * Adds jars specified by {@code <listener jar=.../>;}
      *
      * @param data the XML install data
-     * @throws com.izforge.izpack.api.exception.CompilerException
-     *                     if the jar cannot be found
-     * @throws IOException if the jar cannot be read
+     * @throws com.izforge.izpack.api.exception.CompilerException if the jar cannot be found
+     * @throws IOException                                        if the jar cannot be read
      */
-    private void addListenerJars(IXMLElement data) throws IOException
-    {
+    private void addListenerJars(IXMLElement data) throws IOException {
         notifyCompilerListener("addListenerJars", CompilerListener.BEGIN, data);
         IXMLElement listeners = data.getFirstChildNamed("listeners");
-        if (listeners != null)
-        {
-            for (IXMLElement listener : listeners.getChildrenNamed("listener"))
-            {
+        if (listeners != null) {
+            for (IXMLElement listener : listeners.getChildrenNamed("listener")) {
                 Stage stage = Stage.valueOf(xmlCompilerHelper.requireAttribute(listener, "stage"));
-                if (Stage.isInInstaller(stage))
-                {
+                if (Stage.isInInstaller(stage)) {
                     URL url = getListenerJarURL(listener);
-                    if (url != null)
-                    {
+                    if (url != null) {
                         compiler.addJar(url, stage == Stage.uninstall);
                     }
                 }
@@ -707,21 +645,17 @@ public class CompilerConfig extends Thread
      *
      * @param data The XML data.
      */
-    private void addNativeLibraries(IXMLElement data)
-    {
+    private void addNativeLibraries(IXMLElement data) {
         notifyCompilerListener("addNativeLibraries", CompilerListener.BEGIN, data);
         IXMLElement nativesElement = data.getFirstChildNamed("natives");
-        if (nativesElement == null)
-        {
+        if (nativesElement == null) {
             return;
         }
-        for (IXMLElement ixmlElement : nativesElement.getChildrenNamed("native"))
-        {
+        for (IXMLElement ixmlElement : nativesElement.getChildrenNamed("native")) {
             String type = xmlCompilerHelper.requireAttribute(ixmlElement, "type");
             String name = xmlCompilerHelper.requireAttribute(ixmlElement, "name");
             String path = ixmlElement.getAttribute(SRC_ATTRIBUTE);
-            if (path == null)
-            {
+            if (path == null) {
                 path = NATIVES_PATH + type + "/" + name;
             }
             String destination = NATIVES_PATH + type + "/" + name;
@@ -734,17 +668,15 @@ public class CompilerConfig extends Thread
             // observed for the uninstaller.
             // TODO Remove this in future
             @Deprecated String stage = ixmlElement.getAttribute("stage");
-            if (stage != null)
-            {
+            if (stage != null) {
                 assertionHelper.parseWarn(ixmlElement,
                         "The 'stage' attribute is deprecated here and might be removed in future."
-                        + " Use the new attribute 'uninstaller' as replacement."
+                                + " Use the new attribute 'uninstaller' as replacement."
                 );
             }
 
             if (Boolean.parseBoolean(ixmlElement.getAttribute("uninstaller", Boolean.FALSE.toString()))
-                /*deprecated:*/ || "both".equalsIgnoreCase(stage) || "uninstall".equalsIgnoreCase(stage))
-            {
+                    /*deprecated:*/ || "both".equalsIgnoreCase(stage) || "uninstall".equalsIgnoreCase(stage)) {
                 List<OsModel> constraints = OsConstraintHelper.getOsList(ixmlElement);
                 List<String> contents = new ArrayList<String>();
                 contents.add(destination);
@@ -760,8 +692,7 @@ public class CompilerConfig extends Thread
      *
      * @param data The XML data.
      */
-    private void addPacks(IXMLElement data) throws CompilerException
-    {
+    private void addPacks(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addPacks", CompilerListener.BEGIN, data);
 
         // the actual adding is delegated to addPacksSingle to enable recursive
@@ -779,12 +710,11 @@ public class CompilerConfig extends Thread
      * <p/>
      * Helper method to recursively add more packs from refpack XML packs definitions
      *
-     * @param data The XML data
+     * @param data    The XML data
      * @param baseDir the base directory of the pack
      * @throws CompilerException an error occured during compiling
      */
-    private void addPacksSingle(IXMLElement data, File baseDir) throws CompilerException
-    {
+    private void addPacksSingle(IXMLElement data, File baseDir) throws CompilerException {
         notifyCompilerListener("addPacksSingle", CompilerListener.BEGIN, data);
         // Initialisation
         IXMLElement root = xmlCompilerHelper.requireChildNamed(data, "packs");
@@ -793,13 +723,11 @@ public class CompilerConfig extends Thread
         List<IXMLElement> packElements = root.getChildrenNamed("pack");
         List<IXMLElement> refPackElements = root.getChildrenNamed("refpack");
         List<IXMLElement> refPackSets = root.getChildrenNamed("refpackset");
-        if (packElements.isEmpty() && refPackElements.isEmpty() && refPackSets.isEmpty())
-        {
+        if (packElements.isEmpty() && refPackElements.isEmpty() && refPackSets.isEmpty()) {
             assertionHelper.parseError(root, "<packs> requires a <pack>, <refpack> or <refpackset>");
         }
 
-        for (IXMLElement packElement : packElements)
-        {
+        for (IXMLElement packElement : packElements) {
 
             // Trivial initialisations
             String name = xmlCompilerHelper.requireAttribute(packElement, "name");
@@ -819,53 +747,44 @@ public class CompilerConfig extends Thread
 
             String conditionId = parseConditionAttribute(packElement);
 
-            if (required && excludeGroup != null)
-            {
+            if (required && excludeGroup != null) {
                 assertionHelper.parseError(packElement, "Pack, which has excludeGroup can not be required.",
-                                           new Exception(
-                                                   "Pack, which has excludeGroup can not be required."));
+                        new Exception(
+                                "Pack, which has excludeGroup can not be required."));
             }
 
             PackInfo pack = new PackInfo(name, id, description, required, loose, excludeGroup,
-                                         uninstall, size);
+                    uninstall, size);
             pack.setOsConstraints(OsConstraintHelper.getOsList(packElement)); // TODO:
             pack.setParent(parent);
-            if (conditionId != null)
-            {
+            if (conditionId != null) {
                 pack.setCondition(conditionId);
             }
             pack.setHidden(hidden);
 
             // unverified
             // if the pack belongs to an excludeGroup it's not preselected by default
-            if (excludeGroup == null)
-            {
+            if (excludeGroup == null) {
                 pack.setPreselected(xmlCompilerHelper.validateYesNoAttribute(packElement, "preselected", YES));
-            }
-            else
-            {
+            } else {
                 pack.setPreselected(xmlCompilerHelper.validateYesNoAttribute(packElement, "preselected", NO));
             }
 
             // Set the pack group if specified
-            if (group != null)
-            {
+            if (group != null) {
                 pack.setGroup(group);
             }
             // Set the pack install groups if specified
-            if (installGroups != null)
-            {
+            if (installGroups != null) {
                 StringTokenizer st = new StringTokenizer(installGroups, ",");
-                while (st.hasMoreTokens())
-                {
+                while (st.hasMoreTokens()) {
                     String igroup = st.nextToken();
                     pack.addInstallGroup(igroup);
                 }
             }
 
             // Set the packImgId if specified
-            if (packImgId != null)
-            {
+            if (packImgId != null) {
                 pack.setPackImgId(packImgId);
             }
 
@@ -888,17 +807,15 @@ public class CompilerConfig extends Thread
             processExecutableChildren(pack, executableChildren);
 
             // We get the dependencies
-            for (IXMLElement dependsNode : packElement.getChildrenNamed("depends"))
-            {
+            for (IXMLElement dependsNode : packElement.getChildrenNamed("depends")) {
                 String depName = xmlCompilerHelper.requireAttribute(dependsNode, "packname");
                 pack.addDependency(depName);
 
             }
 
-            for (IXMLElement validator : packElement.getChildrenNamed("validator"))
-            {
+            for (IXMLElement validator : packElement.getChildrenNamed("validator")) {
                 Class<PackValidator> type = classLoader.loadClass(xmlCompilerHelper.requireContent(validator),
-                                                                  PackValidator.class);
+                        PackValidator.class);
                 pack.addValidator(type.getName());
             }
 
@@ -913,8 +830,7 @@ public class CompilerConfig extends Thread
             packager.addPack(pack);
         }
 
-        for (IXMLElement refPackElement : refPackElements)
-        {
+        for (IXMLElement refPackElement : refPackElements) {
 
             // get the name of reference xml file
             String refFileName = xmlCompilerHelper.requireAttribute(refPackElement, "file");
@@ -932,15 +848,13 @@ public class CompilerConfig extends Thread
             addPacksSingle(refXMLData, packDir);
         }
 
-        for (IXMLElement refPackSet : refPackSets)
-        {
+        for (IXMLElement refPackSet : refPackSets) {
 
             // the directory to scan
             String dir_attr = xmlCompilerHelper.requireAttribute(refPackSet, DIR_ATTRIBUTE);
 
             File dir = new File(dir_attr);
-            if (!dir.isAbsolute())
-            {
+            if (!dir.isAbsolute()) {
                 dir = new File(baseDir, dir_attr);
             }
             if (!dir.isDirectory()) // also tests '.exists()'
@@ -960,13 +874,11 @@ public class CompilerConfig extends Thread
 
             // loop through all found files and handle them as normal refpack files
             String[] files;
-            try
-            {
+            try {
                 ds.scan();
 
                 files = ds.getIncludedFiles();
-                for (String file : files)
-                {
+                for (String file : files) {
                     File refFile = new File(dir, file);
                     File packDir = new File(baseDir, refFile.getParent());
 
@@ -976,9 +888,7 @@ public class CompilerConfig extends Thread
                     // Recursively call myself to add all packs and refpacks from the reference XML
                     addPacksSingle(refXMLData, packDir);
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new CompilerException(e.getMessage());
             }
         }
@@ -986,22 +896,18 @@ public class CompilerConfig extends Thread
         notifyCompilerListener("addPacksSingle", CompilerListener.END, data);
     }
 
-    private void processUpdateCheckChildren(IXMLElement packElement, PackInfo pack) throws CompilerException
-    {
-        for (IXMLElement updateNode : packElement.getChildrenNamed("updatecheck"))
-        {
+    private void processUpdateCheckChildren(IXMLElement packElement, PackInfo pack) throws CompilerException {
+        for (IXMLElement updateNode : packElement.getChildrenNamed("updatecheck")) {
             // get includes and excludes
             ArrayList<String> includesList = new ArrayList<String>();
             ArrayList<String> excludesList = new ArrayList<String>();
 
             // get includes and excludes
-            for (IXMLElement ixmlElement1 : updateNode.getChildrenNamed("include"))
-            {
+            for (IXMLElement ixmlElement1 : updateNode.getChildrenNamed("include")) {
                 includesList.add(xmlCompilerHelper.requireAttribute(ixmlElement1, "name"));
             }
 
-            for (IXMLElement ixmlElement : updateNode.getChildrenNamed("exclude"))
-            {
+            for (IXMLElement ixmlElement : updateNode.getChildrenNamed("exclude")) {
                 excludesList.add(xmlCompilerHelper.requireAttribute(ixmlElement, "name"));
             }
 
@@ -1009,57 +915,44 @@ public class CompilerConfig extends Thread
         }
     }
 
-    private void processFileSetChildren(File baseDir, IXMLElement packElement, PackInfo pack) throws CompilerException
-    {
-        try
-        {
-            for (TargetFileSet fs : readFileSets(packElement, baseDir))
-            {
+    private void processFileSetChildren(File baseDir, IXMLElement packElement, PackInfo pack) throws CompilerException {
+        try {
+            for (TargetFileSet fs : readFileSets(packElement, baseDir)) {
                 processFileSetChildren(fs, baseDir, null, pack);
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             assertionHelper.parseError(packElement, e.getMessage(), e);
         }
     }
 
-    private void processFileSetChildren(TargetFileSet fs, File baseDir, List<OsModel> parentOsList, PackInfo pack) throws Exception
-    {
+    private void processFileSetChildren(TargetFileSet fs, File baseDir, List<OsModel> parentOsList, PackInfo pack) throws Exception {
         String[][] includedFilesAndDirs = new String[][]{
                 fs.getDirectoryScanner().getIncludedDirectories(),
                 fs.getDirectoryScanner().getIncludedFiles()
         };
-        for (String[] filesOrDirs : includedFilesAndDirs)
-        {
-            if (filesOrDirs != null)
-            {
-                for (String filePath : filesOrDirs)
-                {
+        for (String[] filesOrDirs : includedFilesAndDirs) {
+            if (filesOrDirs != null) {
+                for (String filePath : filesOrDirs) {
                     if (!filePath.isEmpty()) // not the basedir itself
                     {
                         File file = new File(fs.getDir(), filePath);
                         String target = new File(fs.getTargetDir(), filePath).getPath();
                         List<OsModel> osList = fs.getOsList();
-                        
-                        if (parentOsList != null && !parentOsList.isEmpty())
-                        {
+
+                        if (parentOsList != null && !parentOsList.isEmpty()) {
                             // get list of OS constraints safisfiying both parent's and fs's
-                            try
-                            {
+                            try {
                                 osList = OsConstraintHelper.commonOsList(parentOsList, fs.getOsList());
                                 logCombineOsLists(parentOsList, fs.getOsList(), osList);
-                            }
-                            catch (OsConstraintHelper.UnsatisfiableOsConstraintsException ex)
-                            {
+                            } catch (OsConstraintHelper.UnsatisfiableOsConstraintsException ex) {
                                 throw new CompilerException(ex.getMessage());
                             }
                         }
-                        
+
                         logAddingFile(file.toString(), target);
                         pack.addFile(baseDir, file, target, osList,
-                                     fs.getOverride(), fs.getOverrideRenameTo(),
-                                     fs.getBlockable(), fs.getAdditionals(), fs.getCondition(), fs.getPack200Properties());
+                                fs.getOverride(), fs.getOverrideRenameTo(),
+                                fs.getBlockable(), fs.getAdditionals(), fs.getCondition(), fs.getPack200Properties());
                     }
                 }
             }
@@ -1068,13 +961,12 @@ public class CompilerConfig extends Thread
 
     /**
      * Process onSelect tags within pack tags
+     *
      * @param packElement pack XML element
-     * @param pack object holding pack information
+     * @param pack        object holding pack information
      */
-    private void processOnSelect(IXMLElement packElement, PackInfo pack)
-    {
-        for (IXMLElement selectNode : packElement.getChildrenNamed("onSelect"))
-        {
+    private void processOnSelect(IXMLElement packElement, PackInfo pack) {
+        for (IXMLElement selectNode : packElement.getChildrenNamed("onSelect")) {
             String name = xmlCompilerHelper.requireAttribute(selectNode, "name");
             String conditionId = parseConditionAttribute(selectNode);
             pack.addOnSelect(name, conditionId);
@@ -1083,13 +975,12 @@ public class CompilerConfig extends Thread
 
     /**
      * Process onDeselect tags within pack tags
+     *
      * @param packElement pack XML element
-     * @param pack object holding pack information
+     * @param pack        object holding pack information
      */
-    private void processOnDeselect(IXMLElement packElement, PackInfo pack)
-    {
-        for (IXMLElement deselectNode : packElement.getChildrenNamed("onDeselect"))
-        {
+    private void processOnDeselect(IXMLElement packElement, PackInfo pack) {
+        for (IXMLElement deselectNode : packElement.getChildrenNamed("onDeselect")) {
             String name = xmlCompilerHelper.requireAttribute(deselectNode, "name");
             String condition = parseConditionAttribute(deselectNode);
             pack.addOnDeselect(name, condition);
@@ -1097,10 +988,8 @@ public class CompilerConfig extends Thread
     }
 
     private void processSingleFileChildren(File baseDir, IXMLElement packElement, PackInfo pack)
-            throws CompilerException
-    {
-        for (IXMLElement singleFileNode : packElement.getChildrenNamed("singlefile"))
-        {
+            throws CompilerException {
+        for (IXMLElement singleFileNode : packElement.getChildrenNamed("singlefile")) {
             String src = getSrcSubstitutedAttributeValue(singleFileNode);
             String target = xmlCompilerHelper.requireAttribute(singleFileNode, "target");
             List<OsModel> osList = OsConstraintHelper.getOsList(singleFileNode); // TODO: unverified
@@ -1109,55 +998,52 @@ public class CompilerConfig extends Thread
             Blockable blockable = getBlockableValue(singleFileNode, osList);
             Map<String, ?> additionals = getAdditionals(singleFileNode);
             String conditionId = parseConditionAttribute(singleFileNode);
-           
+
             File file = new File(src);
-            if (!file.isAbsolute())
-            {
+            if (!file.isAbsolute()) {
                 file = new File(baseDir, src);
             }
 
-            if (!file.exists())
-            {
+            if (!file.exists()) {
                 assertionHelper.parseWarn(singleFileNode, "Source file " + src + " (" + file + ") not found");
                 // next existance checking appears in pack.addFile
             }
 
-            try
-            {
+            try {
                 logAddingFile(file.toString(), target);
                 pack.addFile(baseDir, file, target, osList, override, overrideRenameTo, blockable,
-                             additionals, conditionId, readPack200Properties(singleFileNode));
-            }
-            catch (IOException x)
-            {
+                        additionals, conditionId, readPack200Properties(singleFileNode));
+            } catch (IOException x) {
                 assertionHelper.parseError(singleFileNode, x.getMessage(), x);
             }
         }
     }
 
-    private void processFileChildren(File baseDir, IXMLElement packElement, PackInfo pack) throws CompilerException
-    {
-        for (IXMLElement fileNode : packElement.getChildrenNamed("file"))
-        {
+    private void processFileChildren(File baseDir, IXMLElement packElement, PackInfo pack) throws CompilerException {
+        for (IXMLElement fileNode : packElement.getChildrenNamed("file")) {
             String src = getSrcSubstitutedAttributeValue(fileNode);
             boolean unpack = Boolean.parseBoolean(fileNode.getAttribute("unpack"));
 
             TargetFileSet fs = new TargetFileSet();
-            try
-            {
-                File relsrcfile = new File(src);
-                File abssrcfile = FileUtil.getAbsoluteFile(src, baseDir.getAbsolutePath());
-                if (!abssrcfile.exists())
-                {
+            try {
+                File relsrcfile;// = new File(src);
+                File abssrcfile; // = FileUtil.getAbsoluteFile(src, baseDir.getAbsolutePath());
+                if (src.startsWith("http")) {
+                    src = WebRepositoryAccessor.getCachedUrl(src, System.getProperty("java.io.tmpdir"));
+                    System.out.println("src = "+src);
+                    abssrcfile = new File(src);
+                } else {
+                    relsrcfile = new File(src);
+                    abssrcfile = FileUtil.getAbsoluteFile(src, baseDir.getAbsolutePath());
+                }
+
+                if (!abssrcfile.exists()) {
                     throw new FileNotFoundException("Source file " + relsrcfile + " (" + abssrcfile + ") not found");
                 }
-                if (relsrcfile.isDirectory())
-                {
+                if (relsrcfile.isDirectory()) {
                     fs.setDir(abssrcfile.getParentFile());
                     fs.createInclude().setName(relsrcfile.getName() + "/**");
-                }
-                else
-                {
+                } else {
                     fs.setFile(abssrcfile);
                 }
 
@@ -1171,20 +1057,17 @@ public class CompilerConfig extends Thread
                 fs.setCondition(parseConditionAttribute(fileNode));
 
                 String boolval = fileNode.getAttribute("casesensitive");
-                if (boolval != null)
-                {
+                if (boolval != null) {
                     fs.setCaseSensitive(Boolean.parseBoolean(boolval));
                 }
 
                 boolval = fileNode.getAttribute("defaultexcludes");
-                if (boolval != null)
-                {
+                if (boolval != null) {
                     fs.setDefaultexcludes(Boolean.parseBoolean(boolval));
                 }
 
                 boolval = fileNode.getAttribute("followsymlinks");
-                if (boolval != null)
-                {
+                if (boolval != null) {
                     fs.setFollowSymlinks(Boolean.parseBoolean(boolval));
                 }
 
@@ -1193,43 +1076,34 @@ public class CompilerConfig extends Thread
                 LinkedList<String> srcfiles = new LinkedList<String>();
                 Collections.addAll(srcfiles, fs.getDirectoryScanner().getIncludedDirectories());
                 Collections.addAll(srcfiles, fs.getDirectoryScanner().getIncludedFiles());
-                for (String filePath : srcfiles)
-                {
-                    if (!filePath.isEmpty())
-                    {
+                for (String filePath : srcfiles) {
+                    if (!filePath.isEmpty()) {
                         abssrcfile = new File(fs.getDir(), filePath);
-                        if (unpack)
-                        {
+                        if (unpack) {
                             logger.info("Adding content from archive: " + abssrcfile);
                             addArchiveContent(fileNode, baseDir, abssrcfile, fs.getTargetDir(),
-                                              fs.getOsList(), fs.getOverride(), fs.getOverrideRenameTo(),
-                                              fs.getBlockable(), pack, fs.getAdditionals(), fs.getCondition(),
-                                              pack200Properties);
-                        }
-                        else
-                        {
+                                    fs.getOsList(), fs.getOverride(), fs.getOverrideRenameTo(),
+                                    fs.getBlockable(), pack, fs.getAdditionals(), fs.getCondition(),
+                                    pack200Properties);
+                        } else {
                             String target = fs.getTargetDir() + "/" + filePath;
                             logAddingFile(abssrcfile.toString(), target);
                             pack.addFile(baseDir, abssrcfile, target, fs.getOsList(),
-                                         fs.getOverride(), fs.getOverrideRenameTo(), fs.getBlockable(),
-                                         fs.getAdditionals(), fs.getCondition(), pack200Properties);
+                                    fs.getOverride(), fs.getOverrideRenameTo(), fs.getBlockable(),
+                                    fs.getAdditionals(), fs.getCondition(), pack200Properties);
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new CompilerException(e.getMessage(), e);
             }
         }
     }
 
-    private Map<String, String> readPack200Properties(IXMLElement element)
-    {
+    private Map<String, String> readPack200Properties(IXMLElement element) {
         IXMLElement pack200Element = element.getFirstChildNamed("pack200");
         Map<String, String> pack200Properties = null;
-        if (pack200Element != null)
-        {
+        if (pack200Element != null) {
             pack200Properties = new HashMap<String, String>();
             addNotNullAttribute(pack200Properties, Pack200.Packer.EFFORT, pack200Element, "effort");
             addNotNullAttribute(pack200Properties, Pack200.Packer.SEGMENT_LIMIT, pack200Element, "segment-limit");
@@ -1246,31 +1120,24 @@ public class CompilerConfig extends Thread
         return pack200Properties;
     }
 
-    private void addNotNullAttribute(Map<String, String> map, String key, IXMLElement element, String attrName)
-    {
+    private void addNotNullAttribute(Map<String, String> map, String key, IXMLElement element, String attrName) {
         String attr = element.getAttribute(attrName);
-        if (attr != null)
-        {
+        if (attr != null) {
             map.put(key, attr);
         }
     }
 
-    private void addNotNullAttributeIfTrue(Map<String, String> map, String key, String value, IXMLElement element, String attrName)
-    {
+    private void addNotNullAttributeIfTrue(Map<String, String> map, String key, String value, IXMLElement element, String attrName) {
         String attr = element.getAttribute(attrName);
-        if (attr != null)
-        {
-            if (Boolean.parseBoolean(attr))
-            {
+        if (attr != null) {
+            if (Boolean.parseBoolean(attr)) {
                 map.put(key, value);
             }
         }
     }
 
-    private void processExecutableChildren(PackInfo pack, List<IXMLElement> childrenNamed) throws CompilerException
-    {
-        for (IXMLElement executableNode : childrenNamed)
-        {
+    private void processExecutableChildren(PackInfo pack, List<IXMLElement> childrenNamed) throws CompilerException {
+        for (IXMLElement executableNode : childrenNamed) {
             String target = executableNode.getAttribute("targetfile");
             String conditionId = parseConditionAttribute(executableNode);
             List<OsModel> osList = OsConstraintHelper.getOsList(executableNode); // TODO: unverified
@@ -1278,46 +1145,33 @@ public class CompilerConfig extends Thread
             boolean keepFile;
 
             String val = executableNode.getAttribute("stage", "never");
-            if ("postinstall".equalsIgnoreCase(val))
-            {
+            if ("postinstall".equalsIgnoreCase(val)) {
                 executionStage = ExecutableFile.POSTINSTALL;
-            }
-            else if ("uninstall".equalsIgnoreCase(val))
-            {
+            } else if ("uninstall".equalsIgnoreCase(val)) {
                 executionStage = ExecutableFile.UNINSTALL;
             }
 
             // type of this executable
             val = executableNode.getAttribute("type", "bin");
             String mainClass = executableNode.getAttribute("class"); // executable class
-            if ("jar".equalsIgnoreCase(val))
-            {
+            if ("jar".equalsIgnoreCase(val)) {
                 type = ExecutableFile.JAR;
-                if (mainClass == null || mainClass.isEmpty())
-                {
+                if (mainClass == null || mainClass.isEmpty()) {
                     throw new CompilerException("Attribute 'class' mandatory and must not be empty for type 'jar'");
                 }
-            }
-            else
-            {
-                if (mainClass != null)
-                {
+            } else {
+                if (mainClass != null) {
                     throw new CompilerException("Attribute 'class' allowed for type 'jar' only");
                 }
             }
 
             // what to do if execution fails
             val = executableNode.getAttribute("failure", "ask");
-            if ("abort".equalsIgnoreCase(val))
-            {
+            if ("abort".equalsIgnoreCase(val)) {
                 onFailure = ExecutableFile.ABORT;
-            }
-            else if ("warn".equalsIgnoreCase(val))
-            {
+            } else if ("warn".equalsIgnoreCase(val)) {
                 onFailure = ExecutableFile.WARN;
-            }
-            else if ("ignore".equalsIgnoreCase(val))
-            {
+            } else if ("ignore".equalsIgnoreCase(val)) {
                 onFailure = ExecutableFile.IGNORE;
             }
 
@@ -1328,26 +1182,21 @@ public class CompilerConfig extends Thread
             // get arguments for this executable
             IXMLElement args = executableNode.getFirstChildNamed("args");
             List<String> argsList = new ArrayList<String>();
-            if (null != args)
-            {
-                for (IXMLElement ixmlElement : args.getChildrenNamed("arg"))
-                {
+            if (null != args) {
+                for (IXMLElement ixmlElement : args.getChildrenNamed("arg")) {
                     argsList.add(xmlCompilerHelper.requireAttribute(ixmlElement, "value"));
                 }
             }
 
-            if (target != null)
-            {
+            if (target != null) {
                 addNewExecutableFile(pack, target, conditionId, osList, executionStage, type, mainClass,
                         onFailure, keepFile, argsList);
                 logMarkFileExecutable(target);
             }
-            for (IXMLElement fileSetElement : executableNode.getChildrenNamed("fileset"))
-            {
+            for (IXMLElement fileSetElement : executableNode.getChildrenNamed("fileset")) {
                 String targetdir = fileSetElement.getAttribute("targetdir", "${INSTALL_PATH}");
                 Set<String> includedFiles = getFilesetIncludedFiles(pack, fileSetElement, targetdir);
-                for (String filePath : includedFiles)
-                {
+                for (String filePath : includedFiles) {
                     addNewExecutableFile(pack, filePath, conditionId, osList, executionStage, type, mainClass,
                             onFailure, keepFile, argsList);
                     logMarkFileExecutable(filePath);
@@ -1357,9 +1206,8 @@ public class CompilerConfig extends Thread
     }
 
     private void addNewExecutableFile(PackInfo pack, String target, String condition, List<OsModel> osList,
-            int executionStage, int type, String mainClass, int onFailure, boolean keepFile, List<String> argsList
-            ) throws CompilerException
-    {
+                                      int executionStage, int type, String mainClass, int onFailure, boolean keepFile, List<String> argsList
+    ) throws CompilerException {
         ExecutableFile executable = new ExecutableFile();
         executable.path = target;
         executable.setCondition(condition);
@@ -1369,42 +1217,34 @@ public class CompilerConfig extends Thread
         executable.mainClass = mainClass;
         executable.onFailure = onFailure;
         executable.keepFile = keepFile;
-        for (String arg : argsList)
-        {
+        for (String arg : argsList) {
             executable.argList.add(arg);
         }
 
         pack.addExecutable(executable);
     }
 
-    private void processParsableChildren(PackInfo pack, List<IXMLElement> parsableChildren) throws CompilerException
-    {
-        for (IXMLElement parsableNode : parsableChildren)
-        {
+    private void processParsableChildren(PackInfo pack, List<IXMLElement> parsableChildren) throws CompilerException {
+        for (IXMLElement parsableNode : parsableChildren) {
             String target = parsableNode.getAttribute("targetfile");
             SubstitutionType type = SubstitutionType.lookup(parsableNode.getAttribute("type", "plain"));
             String encoding = parsableNode.getAttribute("encoding", null);
             List<OsModel> osList = OsConstraintHelper.getOsList(parsableNode); // TODO: unverified
             String conditionId = parseConditionAttribute(parsableNode);
-            if (target != null)
-            {
+            if (target != null) {
                 ParsableFile parsable = new ParsableFile(target, type, encoding, osList);
-                if (conditionId != null)
-                {
+                if (conditionId != null) {
                     parsable.setCondition(conditionId);
                 }
                 pack.addParsable(parsable);
                 logMarkFileParsable(target);
             }
-            for (IXMLElement fileSetElement : parsableNode.getChildrenNamed("fileset"))
-            {
+            for (IXMLElement fileSetElement : parsableNode.getChildrenNamed("fileset")) {
                 String targetdir = fileSetElement.getAttribute("targetdir", "${INSTALL_PATH}");
                 Set<String> includedFiles = getFilesetIncludedFiles(pack, fileSetElement, targetdir);
-                for (String filePath : includedFiles)
-                {
+                for (String filePath : includedFiles) {
                     ParsableFile parsable = new ParsableFile(filePath, type, encoding, osList);
-                    if (conditionId != null)
-                    {
+                    if (conditionId != null) {
                         parsable.setCondition(conditionId);
                     }
                     pack.addParsable(parsable);
@@ -1415,30 +1255,25 @@ public class CompilerConfig extends Thread
     }
 
     private Set<String> getFilesetIncludedFiles(PackInfo info, IXMLElement fileSetElement, String targetDir)
-    throws CompilerException
-    {
+            throws CompilerException {
         boolean casesensitive = xmlCompilerHelper.validateYesNoAttribute(fileSetElement, "casesensitive", YES);
 
         // get includes and excludes
         List<IXMLElement> xcludesList;
         String[] includes = null;
         xcludesList = fileSetElement.getChildrenNamed("include");
-        if (!xcludesList.isEmpty())
-        {
+        if (!xcludesList.isEmpty()) {
             includes = new String[xcludesList.size()];
-            for (int j = 0; j < xcludesList.size(); j++)
-            {
+            for (int j = 0; j < xcludesList.size(); j++) {
                 IXMLElement xclude = xcludesList.get(j);
                 includes[j] = xmlCompilerHelper.requireAttribute(xclude, "name");
             }
         }
         String[] excludes = null;
         xcludesList = fileSetElement.getChildrenNamed("exclude");
-        if (!xcludesList.isEmpty())
-        {
+        if (!xcludesList.isEmpty()) {
             excludes = new String[xcludesList.size()];
-            for (int j = 0; j < xcludesList.size(); j++)
-            {
+            for (int j = 0; j < xcludesList.size(); j++) {
                 IXMLElement xclude = xcludesList.get(j);
                 excludes[j] = xmlCompilerHelper.requireAttribute(xclude, "name");
             }
@@ -1449,16 +1284,13 @@ public class CompilerConfig extends Thread
         // use the existing containers filled from include and exclude
         // and add the includes and excludes to it
         String[][] containers = new String[][]{includes, excludes};
-        for (int j = 0; j < toDo.length; ++j)
-        {
+        for (int j = 0; j < toDo.length; ++j) {
             String inex = fileSetElement.getAttribute(toDo[j]);
-            if (inex != null && inex.length() > 0)
-            { // This is the same "splitting" as ant PatternSet do ...
+            if (inex != null && inex.length() > 0) { // This is the same "splitting" as ant PatternSet do ...
                 StringTokenizer tokenizer = new StringTokenizer(inex, ", ", false);
                 int newSize = tokenizer.countTokens();
                 String[] nCont = null;
-                if (containers[j] != null && containers[j].length > 0)
-                {   // old container exist; create a new which can hold
+                if (containers[j] != null && containers[j].length > 0) {   // old container exist; create a new which can hold
                     // all values and copy the old stuff to the front
                     newSize += containers[j].length;
                     nCont = new String[newSize];
@@ -1485,33 +1317,26 @@ public class CompilerConfig extends Thread
         HashSet<String> matches = new HashSet<String>();
         AntPathMatcher matcher = new AntPathMatcher();
 
-        if (includes == null || includes.length == 0)
-        {
+        if (includes == null || includes.length == 0) {
             throw new CompilerException("At least one included file required in a fileset");
         }
 
-        logger.fine("Fileset (targetDir=\""+targetDir+"\"");
-        for (String include : includes)
-        {
-            logger.fine("Processing include: \"" + include+"\"");
-            for (PackFile s:info.getPackFiles()) {
+        logger.fine("Fileset (targetDir=\"" + targetDir + "\"");
+        for (String include : includes) {
+            logger.fine("Processing include: \"" + include + "\"");
+            for (PackFile s : info.getPackFiles()) {
                 String targetPath = s.getTargetPath();
-                if (matcher.match(targetDir + "/" + include, targetPath, casesensitive))
-                {
+                if (matcher.match(targetDir + "/" + include, targetPath, casesensitive)) {
                     matches.add(targetPath);
                 }
             }
         }
 
-        if (excludes != null)
-        {
-            for (String exclude : excludes)
-            {
-                for (PackFile s : info.getPackFiles())
-                {
+        if (excludes != null) {
+            for (String exclude : excludes) {
+                for (PackFile s : info.getPackFiles()) {
                     String targetPath = s.getTargetPath();
-                    if (matcher.match(exclude, targetPath, casesensitive))
-                    {
+                    if (matcher.match(exclude, targetPath, casesensitive)) {
                         matches.remove(targetPath);
                     }
                 }
@@ -1522,48 +1347,35 @@ public class CompilerConfig extends Thread
     }
 
     private IXMLElement readRefPackData(File baseDir, String refFileName, boolean isselfcontained)
-            throws CompilerException
-    {
+            throws CompilerException {
         File refXMLFile = new File(refFileName);
-        if (!refXMLFile.isAbsolute())
-        {
+        if (!refXMLFile.isAbsolute()) {
             refXMLFile = new File(baseDir, refFileName);
         }
-        if (!refXMLFile.canRead())
-        {
+        if (!refXMLFile.canRead()) {
             throw new CompilerException("Invalid file: " + refXMLFile);
         }
 
         InputStream specin;
 
-        if (isselfcontained)
-        {
-            if (!refXMLFile.getAbsolutePath().endsWith(".zip"))
-            {
+        if (isselfcontained) {
+            if (!refXMLFile.getAbsolutePath().endsWith(".zip")) {
                 throw new CompilerException(
                         "Invalid file: " + refXMLFile
                                 + ". Selfcontained files can only be of type zip.");
             }
             ZipFile zip;
-            try
-            {
+            try {
                 zip = new ZipFile(refXMLFile, ZipFile.OPEN_READ);
                 ZipEntry specentry = zip.getEntry("META-INF/izpack.xml");
                 specin = zip.getInputStream(specentry);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new CompilerException("Error reading META-INF/izpack.xml in " + refXMLFile);
             }
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 specin = new FileInputStream(refXMLFile.getAbsolutePath());
-            }
-            catch (FileNotFoundException e)
-            {
+            } catch (FileNotFoundException e) {
                 throw new CompilerException(
                         "FileNotFoundException exception while reading refXMLFile");
             }
@@ -1572,13 +1384,12 @@ public class CompilerConfig extends Thread
         IXMLElement refXMLData = new InstallationXmlParser().parse(specin, refXMLFile.getAbsolutePath());
 
         // Now checked the loaded XML file for basic syntax
-        if (! (  "izpack:installation".equalsIgnoreCase(refXMLData.getName())  // normally with the namespace prefix
-            || "installation".equalsIgnoreCase(refXMLData.getName())))       // optional without
+        if (!("izpack:installation".equalsIgnoreCase(refXMLData.getName())  // normally with the namespace prefix
+                || "installation".equalsIgnoreCase(refXMLData.getName())))       // optional without
         {
             assertionHelper.parseError(refXMLData, "this is not an IzPack XML installation file");
         }
-        if (!CompilerData.VERSION.equalsIgnoreCase(xmlCompilerHelper.requireAttribute(refXMLData, "version")))
-        {
+        if (!CompilerData.VERSION.equalsIgnoreCase(xmlCompilerHelper.requireAttribute(refXMLData, "version"))) {
             assertionHelper.parseError(refXMLData, "the file version is different from the compiler version");
         }
 
@@ -1588,12 +1399,9 @@ public class CompilerConfig extends Thread
         // call addResources to add the referenced XML resources to this installation
         addResources(refXMLData, baseDir);
 
-        try
-        {
+        try {
             specin.close();
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -1615,20 +1423,16 @@ public class CompilerConfig extends Thread
     private void addArchiveContent(IXMLElement fileNode, File baseDir, File archive, String targetDir,
                                    List<OsModel> osList, OverrideType override, String overrideRenameTo,
                                    Blockable blockable, PackInfo pack, Map<String, ?> additionals,
-                                   String condition, Map<String, String> pack200Properties) throws Exception
-    {
+                                   String condition, Map<String, String> pack200Properties) throws Exception {
         String archiveName = archive.getName();
 
         InputStream originalInputStream = IOUtils.buffer(FileUtils.openInputStream(archive));
 
         InputStream uncompressedInputStream;
-        try
-        {
+        try {
             uncompressedInputStream = IOUtils.buffer(new CompressorStreamFactory().createCompressorInputStream(originalInputStream));
             // file is compressed, may be a compressed archive
-        }
-        catch (CompressorException e)
-        {
+        } catch (CompressorException e) {
             // file is not a single compressed file, may be an uncompressed archive
             uncompressedInputStream = originalInputStream;
         }
@@ -1638,79 +1442,61 @@ public class CompilerConfig extends Thread
 
         ArchiveInputStream archiveInputStream = null;
         File baseTempDir = null;
-        try
-        {
+        try {
             archiveInputStream = new ArchiveStreamFactory().createArchiveInputStream(archive, uncompressedInputStream);
 
             // file is an archive (incl. ZIP archive) - unpack recursively
             baseTempDir = com.izforge.izpack.util.file.FileUtils.createTempDirectory("izpack", TEMP_DIR);
 
-            while (true)
-            {
+            while (true) {
                 ArchiveEntry entry = archiveInputStream.getNextEntry();
-                if (entry == null)
-                {
+                if (entry == null) {
                     break;
                 }
                 String entryName = entry.getName();
-                if (entry.isDirectory())
-                {
+                if (entry.isDirectory()) {
                     String dName = FilenameUtils.normalizeNoEndSeparator(entryName);
                     File tempDir = new File(baseTempDir, dName);
                     FileUtils.forceMkdir(tempDir);
-                    if (hasNoFileSet)
-                    {
+                    if (hasNoFileSet) {
                         String target = targetDir + "/" + dName;
                         logAddingFile(dName + " (" + archiveName + ")", target);
                         pack.addFile(baseTempDir, tempDir, target, osList, override, overrideRenameTo, blockable, additionals, condition, null);
                     }
-                }
-                else
-                {
+                } else {
                     FileOutputStream tempFileStream = null;
-                    try
-                    {
+                    try {
                         File tempFile = new File(baseTempDir, entryName);
                         tempFileStream = FileUtils.openOutputStream(tempFile);
                         IOUtils.copy(archiveInputStream, tempFileStream);
                         tempFileStream.close();
 
-                        if (hasNoFileSet)
-                        {
+                        if (hasNoFileSet) {
                             String target = targetDir + "/" + entryName;
                             logAddingFile(entryName + " (" + archiveName + ")", target);
                             pack.addFile(baseTempDir, tempFile, target, osList, override, overrideRenameTo, blockable, additionals, condition, pack200Properties);
                         }
-                    }
-                    finally
-                    {
+                    } finally {
                         IOUtils.closeQuietly(tempFileStream);
                     }
                 }
             }
 
-            if (!hasNoFileSet)
-            {
-                for (IXMLElement fileSetNode : filesetNodes)
-                {
+            if (!hasNoFileSet) {
+                for (IXMLElement fileSetNode : filesetNodes) {
                     processFileSetChildren(readArchiveFileSet(fileSetNode, baseTempDir, targetDir), baseTempDir, osList, pack);
                 }
             }
-        }
-        catch (ArchiveException e)
-        {
-            if (baseTempDir != null)
-            {
+        } catch (ArchiveException e) {
+            if (baseTempDir != null) {
                 FileUtils.deleteDirectory(baseTempDir);
             }
 
-            if (uncompressedInputStream == originalInputStream)
-            {
+            if (uncompressedInputStream == originalInputStream) {
                 throw new Exception("No compression or archiving format detected for file " + archive + " marked to be unpacked");
             }
 
-            if (!hasNoFileSet)
-            {
+            if (!hasNoFileSet) {
                 throw new Exception("Nested archive filesets not applicable because " + archive + " is not an archive file");
             }
 
@@ -1723,14 +1509,11 @@ public class CompilerConfig extends Thread
             String target = targetDir + "/" + uncompressedArchiveName;
             logAddingFile(uncompressedArchiveName + " (" + archiveName + ")", target);
             pack.addFile(baseDir, temp, target, osList, override, overrideRenameTo, blockable, additionals, condition, pack200Properties);
-        }
-        finally
-        {
+        } finally {
             IOUtils.closeQuietly(archiveInputStream);
             IOUtils.closeQuietly(uncompressedInputStream);
             IOUtils.closeQuietly(originalInputStream);
-            if (baseTempDir != null)
-            {
+            if (baseTempDir != null) {
                 FileUtils.forceDeleteOnExit(baseTempDir);
             }
         }
@@ -1742,23 +1525,20 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void addPanels(IXMLElement data)
-    {
+    private void addPanels(IXMLElement data) {
         notifyCompilerListener("addPanels", CompilerListener.BEGIN, data);
         IXMLElement root = xmlCompilerHelper.requireChildNamed(data, "panels");
 
         // at least one panel is required
         List<IXMLElement> panels = root.getChildrenNamed("panel");
-        if (panels.isEmpty())
-        {
+        if (panels.isEmpty()) {
             assertionHelper.parseError(root, "<panels> requires a <panel>");
         }
 
         // We process each panel markup
         // We need a panel counter to build unique panel dependent resource names
         int panelCounter = 0;
-        for (IXMLElement panelElement : panels)
-        {
+        for (IXMLElement panelElement : panels) {
             panelCounter++;
 
             // create the serialized Panel data
@@ -1769,42 +1549,37 @@ public class CompilerConfig extends Thread
             // add an id
             String idAttr = panelElement.getAttribute("id");
             String panelId = idAttr;
-            if (idAttr == null)
-            {
+            if (idAttr == null) {
                 panelId = className + "_" + (panelCounter - 1);
             }
             panel.setPanelId(panelId);
             String conditionId = parseConditionAttribute(panelElement);
-            if (conditionId != null)
-            {
+            if (conditionId != null) {
                 panel.setCondition(conditionId);
             }
 
             String allowCloseStr = panelElement.getAttribute("allowClose");
-            if (allowCloseStr != null)
-            {
-              boolean allowClose = Boolean.parseBoolean(allowCloseStr);
-              if (allowClose)
-                panel.setConfirmQuitType(Panel.ConfirmQuitType.SILENT);
-              else
-                panel.setConfirmQuitType(Panel.ConfirmQuitType.CONFIRM);
-              // Make all previous panels CONFIRM if they're currently DYNAMIC.
-              // This simplifies usage while maintaining backward compatibility
-              // (user only has to specify allowClose="true" on last panel for
-              //  probably the most common desired behavior).
-              // Note: the new panel is not in the list yet (so we don't have to
-              //       manually exclude it)
-              List<Panel> previousPanels = packager.getPanelList();
-              for (Panel previousPanel: previousPanels)
-                if (previousPanel.getConfirmQuitType() == Panel.ConfirmQuitType.DYNAMIC)
-                  previousPanel.setConfirmQuitType(Panel.ConfirmQuitType.CONFIRM);
+            if (allowCloseStr != null) {
+                boolean allowClose = Boolean.parseBoolean(allowCloseStr);
+                if (allowClose)
+                    panel.setConfirmQuitType(Panel.ConfirmQuitType.SILENT);
+                else
+                    panel.setConfirmQuitType(Panel.ConfirmQuitType.CONFIRM);
+                // Make all previous panels CONFIRM if they're currently DYNAMIC.
+                // This simplifies usage while maintaining backward compatibility
+                // (user only has to specify allowClose="true" on last panel for
+                //  probably the most common desired behavior).
+                // Note: the new panel is not in the list yet (so we don't have to
+                //       manually exclude it)
+                List<Panel> previousPanels = packager.getPanelList();
+                for (Panel previousPanel : previousPanels)
+                    if (previousPanel.getConfirmQuitType() == Panel.ConfirmQuitType.DYNAMIC)
+                        previousPanel.setConfirmQuitType(Panel.ConfirmQuitType.CONFIRM);
             }
             // note - all jars must be added to the classpath prior to invoking this
             Class<IzPanel> type = classLoader.loadClass(className, IzPanel.class);
-            if (type.equals(UserInputPanel.class))
-            {
-                if (userInputPanelIds == null || !userInputPanelIds.contains(panelId))
-                {
+            if (type.equals(UserInputPanel.class)) {
+                if (userInputPanelIds == null || !userInputPanelIds.contains(panelId)) {
                     assertionHelper.parseError(panelElement, "Referred user input panel '" + panelId
                             + "' has not been defined in resource "
                             + UserInputPanelSpec.SPEC_FILE_NAME);
@@ -1815,22 +1590,19 @@ public class CompilerConfig extends Thread
 
             // adding validator
             List<IXMLElement> validatorElements = panelElement.getChildrenNamed(DataValidator.DATA_VALIDATOR_TAG);
-            for (IXMLElement validatorElement : validatorElements)
-            {
+            for (IXMLElement validatorElement : validatorElements) {
                 String validator = validatorElement.getAttribute(DataValidator.DATA_VALIDATOR_CLASSNAME_ATTR);
-                if (validator != null && !validator.isEmpty())
-                {
+                if (validator != null && !validator.isEmpty()) {
                     String validatorCondition = validatorElement.getAttribute(DataValidator.DATA_VALIDATOR_CONDITION_ATTR);
                     Class<DataValidator> validatorType = classLoader.loadClass(validator, DataValidator.class);
                     DefaultConfigurationHandler configurable = null;
-                    if (PanelValidator.class.isAssignableFrom(validatorType))
-                    {
+                    if (PanelValidator.class.isAssignableFrom(validatorType)) {
                         configurable = new DefaultConfigurationHandlerAdapter();
                         configurable.readParameters(validatorElement);
                         logger.finer("Validator " + validatorType.getName()
                                 + " extends the " + PanelValidator.class.getSimpleName()
                                 + "interface and adds "
-                                + (configurable.getNames()!=null?configurable.getNames().size():"no")
+                                + (configurable.getNames() != null ? configurable.getNames().size() : "no")
                                 + " parameters");
                     }
                     logger.fine("Adding validator '" + validator + "' to panel '" + panel.getPanelId() + "'");
@@ -1843,21 +1615,17 @@ public class CompilerConfig extends Thread
             if (helpSpecs != null) // TODO : remove this condition, getChildrenNamed always return a list
             {
                 List<Help> helps = new ArrayList<Help>();
-                for (IXMLElement help : helpSpecs)
-                {
+                for (IXMLElement help : helpSpecs) {
                     String iso3 = help.getAttribute(ISO3_ATTRIBUTE);
                     String resourceId;
-                    if (idAttr == null)
-                    {
+                    if (idAttr == null) {
                         resourceId = className + "_" + panelCounter + "_help.html_" + iso3;
-                    }
-                    else
-                    {
+                    } else {
                         resourceId = idAttr + "_" + panelCounter + "_help.html_" + iso3;
                     }
                     helps.add(new Help(iso3, resourceId));
                     URL originalUrl = resourceFinder.findProjectResource(help.getAttribute(SRC_ATTRIBUTE),
-                                                                         "Help", help);
+                            "Help", help);
                     packager.addResource(resourceId, originalUrl);
                 }
                 panel.setHelps(helps);
@@ -1877,26 +1645,20 @@ public class CompilerConfig extends Thread
      * @param data the XML root tag of the installer descriptor
      * @throws CompilerException an error ocurred during compiling
      */
-    private void addLogging(IXMLElement data) throws CompilerException
-    {
+    private void addLogging(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addLogging", CompilerListener.BEGIN, data);
 
         IXMLElement loggingElement = data.getFirstChildNamed("logging");
-        if (loggingElement == null)
-        {
+        if (loggingElement == null) {
             return;
         }
 
         // check if we can load the logging properties from an external file...
         List<IXMLElement> configFiles = loggingElement.getChildrenNamed("configuration-file");
-        if (configFiles != null)
-        {
-            if (configFiles.size() > 1)
-            {
+        if (configFiles != null) {
+            if (configFiles.size() > 1) {
                 assertionHelper.parseError(loggingElement, "Logging configuration by external file may only be used once");
-            }
-            else if (configFiles.size() == 1)
-            {
+            } else if (configFiles.size() == 1) {
                 IXMLElement configFileElement = configFiles.get(0);
                 String fileName = xmlCompilerHelper.requireAttribute(configFileElement, "file");
                 URL url = resourceFinder.findProjectResource(fileName, "Logging configuration from file", configFileElement);
@@ -1908,13 +1670,11 @@ public class CompilerConfig extends Thread
         // ... and if not, create the logging properties ourselves
         Properties logConfig = null;
         final String globalLevel = loggingElement.getAttribute("level", "INFO");
-        if (globalLevel != null)
-        {
+        if (globalLevel != null) {
             logConfig = new Properties();
             //logConfig.setProperty(".level", globalLevel);
             logConfig.setProperty(ConsoleHandler.class.getName() + ".level", globalLevel);
-            if (Level.parse(globalLevel).intValue() > Level.INFO.intValue())
-            {
+            if (Level.parse(globalLevel).intValue() > Level.INFO.intValue()) {
                 logConfig.setProperty("java.awt.level", globalLevel);
                 logConfig.setProperty("javax.swing.level", globalLevel);
                 logConfig.setProperty("sun.awt.level", globalLevel);
@@ -1923,80 +1683,62 @@ public class CompilerConfig extends Thread
         }
 
         List<IXMLElement> logFiles = loggingElement.getChildrenNamed("log-file");
-        if (logFiles != null)
-        {
-            if (configFiles != null && !configFiles.isEmpty() && !logFiles.isEmpty())
-            {
+        if (logFiles != null) {
+            if (configFiles != null && !configFiles.isEmpty() && !logFiles.isEmpty()) {
                 assertionHelper.parseError(loggingElement, "Logging configuration by external file and log file specification cannot be mixed");
             }
-            for (IXMLElement configFileElement : logFiles)
-            {
+            for (IXMLElement configFileElement : logFiles) {
                 final String cname = FileHandler.class.getName();
-                if (logConfig == null)
-                {
+                if (logConfig == null) {
                     logConfig = new Properties();
                 }
                 logConfig.setProperty("handlers", cname);
                 final String pattern = configFileElement.getAttribute("pattern");
-                if (pattern != null)
-                {
+                if (pattern != null) {
                     logConfig.setProperty(cname + ".pattern", pattern);
                 }
                 final String level = configFileElement.getAttribute("level", "INFO");
-                if (level != null)
-                {
+                if (level != null) {
                     logConfig.setProperty(cname + ".level", level);
                 }
                 final String filter = configFileElement.getAttribute("filter");
-                if (filter != null)
-                {
+                if (filter != null) {
                     logConfig.setProperty(cname + ".filter", filter);
                 }
                 final String encoding = configFileElement.getAttribute("encoding");
-                if (encoding != null)
-                {
+                if (encoding != null) {
                     logConfig.setProperty(cname + ".encoding", encoding);
                 }
                 String limit = configFileElement.getAttribute("limit");
-                if (limit != null)
-                {
+                if (limit != null) {
                     logConfig.setProperty(cname + ".limit", limit);
                 }
                 final String count = configFileElement.getAttribute("count");
-                if (count != null)
-                {
+                if (count != null) {
                     logConfig.setProperty(cname + ".count", count);
                 }
                 final String append = configFileElement.getAttribute("append");
-                if (append != null)
-                {
+                if (append != null) {
                     logConfig.setProperty(cname + ".append", append);
                 }
                 final String mkdirs = configFileElement.getAttribute("mkdirs");
-                if (mkdirs != null)
-                {
+                if (mkdirs != null) {
                     logConfig.setProperty(cname + ".mkdirs", Boolean.valueOf(mkdirs).toString());
                 }
                 logConfig.setProperty(cname + ".formatter", FileFormatter.class.getName());
             }
-            if (logConfig != null)
-            {
+            if (logConfig != null) {
                 FileOutputStream os = null;
                 File temp;
-                try
-                {
+                try {
                     temp = File.createTempFile("install_logging", ".properties", TEMP_DIR);
                     temp.deleteOnExit();
                     os = FileUtils.openOutputStream(temp);
                     logConfig.store(os, null);
                     packager.addResource(ResourceManager.DEFAULT_INSTALL_LOGGING_CONFIGURATION_RES, temp.toURI().toURL());
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     throw new CompilerException("Unable to handle temporary resource file: " + e.getMessage(), e);
-                }
-                finally
-                {
+                } finally {
                     IOUtils.closeQuietly(os);
                 }
             }
@@ -2012,20 +1754,18 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void addResources(IXMLElement data) throws CompilerException
-    {
+    private void addResources(IXMLElement data) throws CompilerException {
         addResources(data, new File(compilerData.getBasedir()));
     }
 
     /**
      * Adds the resources.
      *
-     * @param data The XML data.
+     * @param data    The XML data.
      * @param baseDir the base directory which resources should be relatively loaded from
      * @throws CompilerException Description of the Exception
      */
-    private void addResources(IXMLElement data, File baseDir) throws CompilerException
-    {
+    private void addResources(IXMLElement data, File baseDir) throws CompilerException {
         notifyCompilerListener("addResources", CompilerListener.BEGIN, data);
 
         // A list of packsLang-files that were defined by the user in the resource-section The key of
@@ -2034,14 +1774,12 @@ public class CompilerConfig extends Thread
         final Map<String, List<URL>> packsLangUrlMap = new HashMap<String, List<URL>>();
 
         IXMLElement root = data.getFirstChildNamed("resources");
-        if (root == null)
-        {
+        if (root == null) {
             return;
         }
 
         // We process each res markup
-        for (IXMLElement resNode : root.getChildrenNamed("res"))
-        {
+        for (IXMLElement resNode : root.getChildrenNamed("res")) {
             String id = xmlCompilerHelper.requireAttribute(resNode, "id");
             String src = xmlCompilerHelper.requireAttribute(resNode, SRC_ATTRIBUTE);
             // the parse attribute causes substitution to occur
@@ -2050,8 +1788,7 @@ public class CompilerConfig extends Thread
             boolean parsexml = xmlCompilerHelper.validateYesNoAttribute(resNode, "parsexml", NO);
 
             String encoding = resNode.getAttribute("encoding");
-            if (encoding == null)
-            {
+            if (encoding == null) {
                 encoding = "";
             }
 
@@ -2061,10 +1798,8 @@ public class CompilerConfig extends Thread
 
             InputStream is = null;
             OutputStream os = null;
-            try
-            {
-                if (parsexml || !encoding.isEmpty() || (substitute && !packager.getVariables().isEmpty()))
-                {
+            try {
+                if (parsexml || !encoding.isEmpty() || (substitute && !packager.getVariables().isEmpty())) {
                     // make the substitutions into a temp file
                     File parsedFile = File.createTempFile("izpp", null, TEMP_DIR);
                     parsedFile.deleteOnExit();
@@ -2074,8 +1809,7 @@ public class CompilerConfig extends Thread
                     url = parsedFile.toURI().toURL();
                 }
 
-                if (!encoding.isEmpty())
-                {
+                if (!encoding.isEmpty()) {
                     File recodedFile = File.createTempFile("izenc", null, TEMP_DIR);
                     recodedFile.deleteOnExit();
 
@@ -2085,24 +1819,19 @@ public class CompilerConfig extends Thread
 
                     char[] buffer = new char[1024];
                     int read;
-                    while ((read = reader.read(buffer)) != -1)
-                    {
+                    while ((read = reader.read(buffer)) != -1) {
                         writer.write(buffer, 0, read);
                     }
                     reader.close();
                     writer.close();
-                    if (parsexml)
-                    {
+                    if (parsexml) {
                         originalUrl = recodedFile.toURI().toURL();
-                    }
-                    else
-                    {
+                    } else {
                         url = recodedFile.toURI().toURL();
                     }
                 }
 
-                if (parsexml)
-                {
+                if (parsexml) {
                     IXMLParser parser = new XMLParser(false);
                     // this constructor will open the specified url (this is
                     // why the InputStream is not handled in a similar manner
@@ -2110,17 +1839,14 @@ public class CompilerConfig extends Thread
 
                     IXMLElement xml = parser.parse(originalUrl);
                     IXMLWriter writer = new XMLWriter();
-                    if (substitute && !packager.getVariables().isEmpty())
-                    {
+                    if (substitute && !packager.getVariables().isEmpty()) {
                         // if we are also performing substitutions on the file
                         // then create an in-memory copy to pass to the
                         // substitutor
                         ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         writer.setOutput(baos);
                         is = new ByteArrayInputStream(baos.toByteArray());
-                    }
-                    else
-                    {
+                    } else {
                         // otherwise write direct to the temp file
                         writer.setOutput(os);
                     }
@@ -2128,22 +1854,17 @@ public class CompilerConfig extends Thread
                 }
 
                 // substitute variable values in the resource if parsed
-                if (substitute)
-                {
-                    if (packager.getVariables().isEmpty())
-                    {
+                if (substitute) {
+                    if (packager.getVariables().isEmpty()) {
                         // reset url to original.
                         url = originalUrl;
                         assertionHelper.parseWarn(resNode, "No variables defined. " + url.getPath() + " not parsed.");
-                    }
-                    else
-                    {
+                    } else {
                         SubstitutionType type = SubstitutionType.lookup(resNode.getAttribute("type"));
 
                         // if the xml parser did not open the url
                         // ('parsexml' was not enabled)
-                        if (null == is)
-                        {
+                        if (null == is) {
                             is = new BufferedInputStream(originalUrl.openStream());
                         }
                         // VariableSubstitutor vs = new
@@ -2152,33 +1873,21 @@ public class CompilerConfig extends Thread
                     }
                 }
 
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 assertionHelper.parseError(resNode, e.getMessage(), e);
-            }
-            finally
-            {
-                if (null != os)
-                {
-                    try
-                    {
+            } finally {
+                if (null != os) {
+                    try {
                         os.close();
-                    }
-                    catch (IOException e)
-                    {
+                    } catch (IOException e) {
                         // ignore as there is nothing we can realistically do
                         // so lets at least try to close the input stream
                     }
                 }
-                if (null != is)
-                {
-                    try
-                    {
+                if (null != is) {
+                    try {
                         is.close();
-                    }
-                    catch (IOException e)
-                    {
+                    } catch (IOException e) {
                         // ignore as there is nothing we can realistically do
                     }
                 }
@@ -2189,105 +1898,72 @@ public class CompilerConfig extends Thread
             // Just validate to avoid XML parser errors during installation later
             if (id.startsWith(Resources.CUSTOM_TRANSLATIONS_RESOURCE_NAME)
                     || id.startsWith(UserInputPanelSpec.LANG_FILE_NAME)
-                    || id.startsWith(Resources.PACK_TRANSLATIONS_RESOURCE_NAME))
-            {
+                    || id.startsWith(Resources.PACK_TRANSLATIONS_RESOURCE_NAME)) {
                 new LangPackXmlParser().parse(url);
-            }
-            else if (id.endsWith(ShortcutConstants.SPEC_FILE_NAME))
-            {
+            } else if (id.endsWith(ShortcutConstants.SPEC_FILE_NAME)) {
                 new ShortcutSpecXmlParser().parse(url);
-            }
-            else if (id.equals(Resources.CUSTOM_ICONS_RESOURCE_NAME))
-            {
+            } else if (id.equals(Resources.CUSTOM_ICONS_RESOURCE_NAME)) {
                 new IconsSpecXmlParser().parse(url);
-            }
-            else if (id.startsWith(UserInputPanelSpec.SPEC_FILE_NAME))
-            {
+            } else if (id.startsWith(UserInputPanelSpec.SPEC_FILE_NAME)) {
                 userInputSpec = new UserInputSpecXmlParser().parse(url);
-            }
-            else if (id.equals(AntActionInstallerListener.SPEC_FILE_NAME))
-            {
+            } else if (id.equals(AntActionInstallerListener.SPEC_FILE_NAME)) {
                 antActionSpec = new AntActionSpecXmlParser().parse(url);
-            }
-            else if (id.equals(ConfigurationInstallerListener.SPEC_FILE_NAME))
-            {
+            } else if (id.equals(ConfigurationInstallerListener.SPEC_FILE_NAME)) {
                 configurationSpec = new ConfigurationActionSpecXmlParser().parse(url);
-            }
-            else if (id.equals(RegistryInstallerListener.SPEC_FILE_NAME))
-            {
+            } else if (id.equals(RegistryInstallerListener.SPEC_FILE_NAME)) {
                 new RegistrySpecXmlParser().parse(url);
-            }
-            else if (id.equals(ProcessPanelWorker.SPEC_RESOURCE_NAME))
-            {
+            } else if (id.equals(ProcessPanelWorker.SPEC_RESOURCE_NAME)) {
                 new ProcessingSpecXmlParser().parse(url);
             }
 
             // remembering references to all added packsLang.xml files
-            if (id.startsWith(Resources.PACK_TRANSLATIONS_RESOURCE_NAME))
-            {
+            if (id.startsWith(Resources.PACK_TRANSLATIONS_RESOURCE_NAME)) {
                 List<URL> packsLangURLs;
-                if (packsLangUrlMap.containsKey(id))
-                {
+                if (packsLangUrlMap.containsKey(id)) {
                     packsLangURLs = packsLangUrlMap.get(id);
-                }
-                else
-                {
+                } else {
                     packsLangURLs = new ArrayList<URL>();
                     packsLangUrlMap.put(id, packsLangURLs);
                 }
                 packsLangURLs.add(url);
                 // Do not add resource to packager here to prevent adding it multiple times later.
                 // Languages are merged into one file per language and added by {@link addMergedTranslationResources()} later.
-            }
-            else
-            {
+            } else {
                 packager.addResource(id, url);
 
-                if (id.startsWith(UserInputPanelSpec.SPEC_FILE_NAME))
-                {
+                if (id.startsWith(UserInputPanelSpec.SPEC_FILE_NAME)) {
                     // Check user input panel definitions
-                    if (userInputSpec == null)
-                    {
+                    if (userInputSpec == null) {
                         // Parse only if not validating for avoiding parsing twice
                         userInputSpec = new XMLParser(false).parse(url);
                     }
-                    for (IXMLElement userPanelDef : userInputSpec.getChildrenNamed(UserInputPanelSpec.PANEL))
-                    {
+                    for (IXMLElement userPanelDef : userInputSpec.getChildrenNamed(UserInputPanelSpec.PANEL)) {
                         String userPanelId = xmlCompilerHelper.requireAttribute(userPanelDef, "id");
-                        if (userInputPanelIds == null)
-                        {
+                        if (userInputPanelIds == null) {
                             userInputPanelIds = new HashSet<String>();
                         }
-                        if (!userInputPanelIds.add(userPanelId))
-                        {
+                        if (!userInputPanelIds.add(userPanelId)) {
                             assertionHelper.parseError(userInputSpec, "Resource " + UserInputPanelSpec.SPEC_FILE_NAME
                                     + ": Duplicate user input panel identifier '"
                                     + userPanelId + "'");
                         }
                         // Collect referenced conditions in UserInputPanelSpec for checking them later
-                        for (IXMLElement fieldDef : userPanelDef.getChildrenNamed(UserInputPanelSpec.FIELD))
-                        {
+                        for (IXMLElement fieldDef : userPanelDef.getChildrenNamed(UserInputPanelSpec.FIELD)) {
                             String fieldConditionId = fieldDef.getAttribute("conditionid");
-                            if (fieldConditionId != null)
-                            {
+                            if (fieldConditionId != null) {
                                 List<IXMLElement> elList = referencedConditionsUserInputSpec.get(fieldConditionId);
-                                if (elList == null)
-                                {
+                                if (elList == null) {
                                     elList = new ArrayList<IXMLElement>();
                                     referencedConditionsUserInputSpec.put(fieldConditionId, elList);
                                 }
                                 elList.add(fieldDef);
                             }
-                            for (IXMLElement fieldSpecDef : fieldDef.getChildrenNamed(FieldReader.SPEC))
-                            {
-                                for (IXMLElement choiceDef : fieldSpecDef.getChildrenNamed(SimpleChoiceReader.CHOICE))
-                                {
+                            for (IXMLElement fieldSpecDef : fieldDef.getChildrenNamed(FieldReader.SPEC)) {
+                                for (IXMLElement choiceDef : fieldSpecDef.getChildrenNamed(SimpleChoiceReader.CHOICE)) {
                                     String choiceConditionId = choiceDef.getAttribute("conditionid");
-                                    if (choiceConditionId != null)
-                                    {
+                                    if (choiceConditionId != null) {
                                         List<IXMLElement> elList = referencedConditionsUserInputSpec.get(choiceConditionId);
-                                        if (elList == null)
-                                        {
+                                        if (elList == null) {
                                             elList = new ArrayList<IXMLElement>();
                                             referencedConditionsUserInputSpec.put(choiceConditionId, elList);
                                         }
@@ -2295,17 +1971,12 @@ public class CompilerConfig extends Thread
                                     }
                                 }
                                 // Check whether button field run class can be loaded
-                                for (IXMLElement runDef : fieldSpecDef.getChildrenNamed(ButtonFieldReader.RUN_ELEMENT))
-                                {
+                                for (IXMLElement runDef : fieldSpecDef.getChildrenNamed(ButtonFieldReader.RUN_ELEMENT)) {
                                     String actionClassName = runDef.getAttribute(ButtonFieldReader.RUN_ELEMENT_CLASS_ATTR);
-                                    if (actionClassName != null)
-                                    {
-                                        try
-                                        {
+                                    if (actionClassName != null) {
+                                        try {
                                             Class.forName(actionClassName);
-                                        }
-                                        catch (ClassNotFoundException e)
-                                        {
+                                        } catch (ClassNotFoundException e) {
                                             assertionHelper.parseError(userInputSpec, "Resource " + UserInputPanelSpec.SPEC_FILE_NAME
                                                     + ": Button action class '" + actionClassName + "' cannot be loaded");
                                         }
@@ -2314,31 +1985,24 @@ public class CompilerConfig extends Thread
                             }
                         }
                     }
-                } else if (id.equals(AntActionInstallerListener.SPEC_FILE_NAME))
-                {
-                    if (antActionSpec == null)
-                    {
+                } else if (id.equals(AntActionInstallerListener.SPEC_FILE_NAME)) {
+                    if (antActionSpec == null) {
                         // Parse only if not validating for avoiding parsing twice
                         antActionSpec = new XMLParser(false).parse(url);
                     }
-                    for (IXMLElement packDef : antActionSpec.getChildrenNamed(SpecHelper.PACK_KEY))
-                    {
+                    for (IXMLElement packDef : antActionSpec.getChildrenNamed(SpecHelper.PACK_KEY)) {
                         String packName = xmlCompilerHelper.requireAttribute(packDef, SpecHelper.PACK_NAME);
                         // Collect referenced packs in AntActionSpec for checking them later
-                        if (referencedPacksAntActionSpec.put(packName, packDef) != null)
-                        {
+                        if (referencedPacksAntActionSpec.put(packName, packDef) != null) {
                             assertionHelper.parseError(antActionSpec, "Resource " + AntActionInstallerListener.SPEC_FILE_NAME
                                     + ": Duplicate pack identifier '"
                                     + packName + "'");
                         }
-                        for (IXMLElement antCallSpecDef : packDef.getChildrenNamed(AntAction.ANTCALL))
-                        {
+                        for (IXMLElement antCallSpecDef : packDef.getChildrenNamed(AntAction.ANTCALL)) {
                             String antCallConditionId = antCallSpecDef.getAttribute(AntAction.CONDITIONID_ATTR);
-                            if (antCallConditionId != null)
-                            {
+                            if (antCallConditionId != null) {
                                 List<IXMLElement> elList = referencedConditionsAntActionSpec.get(antCallConditionId);
-                                if (elList == null)
-                                {
+                                if (elList == null) {
                                     elList = new ArrayList<IXMLElement>();
                                     referencedConditionsAntActionSpec.put(antCallConditionId, elList);
                                 }
@@ -2346,47 +2010,36 @@ public class CompilerConfig extends Thread
                             }
                         }
                     }
-                } else if (id.equals(ConfigurationInstallerListener.SPEC_FILE_NAME))
-                {
-                    if (configurationSpec == null)
-                    {
+                } else if (id.equals(ConfigurationInstallerListener.SPEC_FILE_NAME)) {
+                    if (configurationSpec == null) {
                         // Parse only if not validating for avoiding parsing twice
                         configurationSpec = new XMLParser(false).parse(url);
                     }
-                    for (IXMLElement packDef : configurationSpec.getChildrenNamed(SpecHelper.PACK_KEY))
-                    {
+                    for (IXMLElement packDef : configurationSpec.getChildrenNamed(SpecHelper.PACK_KEY)) {
                         String packName = xmlCompilerHelper.requireAttribute(packDef, SpecHelper.PACK_NAME);
                         // Collect referenced packs in ConfigurationActionSpec for checking them later
-                        if (referencedPacksConfigurationActionSpec.put(packName, packDef) != null)
-                        {
+                        if (referencedPacksConfigurationActionSpec.put(packName, packDef) != null) {
                             assertionHelper.parseError(configurationSpec, "Resource " + ConfigurationInstallerListener.SPEC_FILE_NAME
                                     + ": Duplicate pack identifier '"
                                     + packName + "'");
                         }
-                        for (IXMLElement configurationactionDef : packDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURATIONACTION_ATTR))
-                        {
-                            for (IXMLElement configurableDef : configurationactionDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURABLE_ATTR))
-                            {
+                        for (IXMLElement configurationactionDef : packDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURATIONACTION_ATTR)) {
+                            for (IXMLElement configurableDef : configurationactionDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURABLE_ATTR)) {
                                 String configurationConditionId = configurableDef.getAttribute(ConfigurationInstallerListener.CONDITION_ATTR);
-                                if (configurationConditionId != null)
-                                {
+                                if (configurationConditionId != null) {
                                     List<IXMLElement> elList = referencedConditionsConfigurationActionSpec.get(configurationConditionId);
-                                    if (elList == null)
-                                    {
+                                    if (elList == null) {
                                         elList = new ArrayList<IXMLElement>();
                                         referencedConditionsConfigurationActionSpec.put(configurationConditionId, elList);
                                     }
                                     elList.add(configurableDef);
                                 }
                             }
-                            for (IXMLElement configurablesetDef : configurationactionDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURABLESET_ATTR))
-                            {
+                            for (IXMLElement configurablesetDef : configurationactionDef.getChildrenNamed(ConfigurationInstallerListener.CONFIGURABLESET_ATTR)) {
                                 String configurationConditionId = configurablesetDef.getAttribute(ConfigurationInstallerListener.CONDITION_ATTR);
-                                if (configurationConditionId != null)
-                                {
+                                if (configurationConditionId != null) {
                                     List<IXMLElement> elList = referencedConditionsConfigurationActionSpec.get(configurationConditionId);
-                                    if (elList == null)
-                                    {
+                                    if (elList == null) {
                                         elList = new ArrayList<IXMLElement>();
                                         referencedConditionsConfigurationActionSpec.put(configurationConditionId, elList);
                                     }
@@ -2408,21 +2061,18 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void addLangpacks(IXMLElement data) throws CompilerException
-    {
+    private void addLangpacks(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addLangpacks", CompilerListener.BEGIN, data);
         IXMLElement root = xmlCompilerHelper.requireChildNamed(data, "locale");
 
         // at least one langpack is required
         List<IXMLElement> locals = root.getChildrenNamed("langpack");
-        if (locals.isEmpty())
-        {
+        if (locals.isEmpty()) {
             assertionHelper.parseError(root, "<locale> requires a <langpack>");
         }
 
         // We process each langpack markup
-        for (IXMLElement localNode : locals)
-        {
+        for (IXMLElement localNode : locals) {
             String iso3 = xmlCompilerHelper.requireAttribute(localNode, "iso3");
             String path;
 
@@ -2436,43 +2086,38 @@ public class CompilerConfig extends Thread
         }
         notifyCompilerListener("addLangpacks", CompilerListener.END, data);
     }
-    
+
     /**
      * Builds the Info class from the XML tree (part that sets just strings).
      *
      * @param data The XML data. return The Info.
      * @throws CompilerException an error occured during compiling
      */
-    private void addInfoStrings(IXMLElement data)
-    {
+    private void addInfoStrings(IXMLElement data) {
         notifyCompilerListener("addInfoStrings", CompilerListener.BEGIN, data);
         // Initialisation
         IXMLElement root = xmlCompilerHelper.requireChildNamed(data, "info");
-        
+
         Info info = compilerData.getExternalInfo();
         info.setAppName(xmlCompilerHelper.requireContent(xmlCompilerHelper.requireChildNamed(root, "appname")));
         info.setAppVersion(xmlCompilerHelper.requireContent(xmlCompilerHelper.requireChildNamed(root, "appversion")));
         // We get the installation subpath
         IXMLElement subpath = root.getFirstChildNamed("appsubpath");
-        if (subpath != null)
-        {
+        if (subpath != null) {
             info.setInstallationSubPath(xmlCompilerHelper.requireContent(subpath));
         }
 
         // validate and insert app URL
         final IXMLElement URLElem = root.getFirstChildNamed("url");
-        if (URLElem != null)
-        {
+        if (URLElem != null) {
             URL appURL = xmlCompilerHelper.requireURLContent(URLElem);
             info.setAppURL(appURL.toString());
         }
-        
+
         // We get the authors list
         IXMLElement authors = root.getFirstChildNamed("authors");
-        if (authors != null)
-        {
-            for (IXMLElement authorNode : authors.getChildrenNamed("author"))
-            {
+        if (authors != null) {
+            for (IXMLElement authorNode : authors.getChildrenNamed("author")) {
                 String name = xmlCompilerHelper.requireAttribute(authorNode, "name");
                 String email = xmlCompilerHelper.requireAttribute(authorNode, "email");
                 info.addAuthor(new Info.Author(name, email));
@@ -2481,32 +2126,25 @@ public class CompilerConfig extends Thread
 
         // We get the java version required
         IXMLElement javaVersion = root.getFirstChildNamed("javaversion");
-        if (javaVersion != null)
-        {
+        if (javaVersion != null) {
             info.setJavaVersion(xmlCompilerHelper.requireContent(javaVersion));
-            if (xmlCompilerHelper.validateYesNoAttribute(javaVersion, "strict", YES))
-            {
+            if (xmlCompilerHelper.validateYesNoAttribute(javaVersion, "strict", YES)) {
                 info.setJavaVersionStrict(true);
             }
         }
 
         // Is a JDK required?
         IXMLElement jdkRequired = root.getFirstChildNamed("requiresjdk");
-        if (jdkRequired != null)
-        {
+        if (jdkRequired != null) {
             info.setJdkRequired("yes".equals(jdkRequired.getContent()));
         }
 
         // Does the installer expire?
         IXMLElement expiresDate = root.getFirstChildNamed("expiresdate");
-        if (expiresDate != null)
-        {
-            try
-            {
+        if (expiresDate != null) {
+            try {
                 info.setExpiresDate(expiresDate.getContent());
-            }
-            catch (ParseException e)
-            {
+            } catch (ParseException e) {
                 throw new CompilerException(
                         "expiresdate must be in format '" + EXPIRE_DATE_FORMAT + "'",
                         e);
@@ -2515,19 +2153,14 @@ public class CompilerConfig extends Thread
 
         // validate and insert (and require if -web kind) web dir
         IXMLElement webDirURL = root.getFirstChildNamed("webdir");
-        if (webDirURL != null)
-        {
+        if (webDirURL != null) {
             info.setWebDirURL(xmlCompilerHelper.requireURLContent(webDirURL).toString());
         }
         String kind = compilerData.getKind();
-        if (kind != null)
-        {
-            if (kind.equalsIgnoreCase(CompilerData.WEB) && webDirURL == null)
-            {
+        if (kind != null) {
+            if (kind.equalsIgnoreCase(CompilerData.WEB) && webDirURL == null) {
                 assertionHelper.parseError(root, "<webdir> required when \"WEB\" installer requested");
-            }
-            else if (kind.equalsIgnoreCase(CompilerData.STANDARD) && webDirURL != null)
-            {
+            } else if (kind.equalsIgnoreCase(CompilerData.STANDARD) && webDirURL != null) {
                 // Need a Warning? parseWarn(webDirURL, "Not creating web
                 // installer.");
                 info.setWebDirURL(null);
@@ -2536,15 +2169,12 @@ public class CompilerConfig extends Thread
 
         String compressionName = compilerData.getComprFormat();
         IXMLElement compressionElement = root.getFirstChildNamed("pack-compression-format");
-        if (compressionElement != null)
-        {
+        if (compressionElement != null) {
             compressionName = xmlCompilerHelper.requireContent(compressionElement);
         }
-        if (compressionName != null)
-        {
+        if (compressionName != null) {
             PackCompression compression = PackCompression.byName(compressionName);
-            if (compression == null)
-            {
+            if (compression == null) {
                 throw new CompilerException("Unknown compression format: " + compressionName);
             }
             info.setCompressionFormat(compression);
@@ -2553,76 +2183,59 @@ public class CompilerConfig extends Thread
 
         // Add the path for the summary log file if specified
         IXMLElement slfPath = root.getFirstChildNamed("summarylogfilepath");
-        if (slfPath != null)
-        {
+        if (slfPath != null) {
             info.setSummaryLogFilePath(xmlCompilerHelper.requireContent(slfPath));
         }
 
         IXMLElement writeInstallInfo = root.getFirstChildNamed("writeinstallationinformation");
-        if (writeInstallInfo != null)
-        {
+        if (writeInstallInfo != null) {
             String writeInstallInfoString = xmlCompilerHelper.requireContent(writeInstallInfo);
             info.setWriteInstallationInformation(validateYesNo(writeInstallInfoString));
         }
-        
+
         IXMLElement readInstallInfo = root.getFirstChildNamed("readinstallationinformation");
-        if (readInstallInfo != null)
-        {
+        if (readInstallInfo != null) {
             String readInstallInfoString = xmlCompilerHelper.requireContent(readInstallInfo);
             info.setReadInstallationInformation(validateYesNo(readInstallInfoString));
         }
 
         IXMLElement isSingleInstance = root.getFirstChildNamed("singleinstance");
-        if (isSingleInstance != null)
-        {
+        if (isSingleInstance != null) {
             String isSingleInstanceString = xmlCompilerHelper.requireContent(isSingleInstance);
             info.setSingleInstance(validateYesNo(isSingleInstanceString));
         }
-        
-         // Check if any temp directories have been specified
+
+        // Check if any temp directories have been specified
         List<IXMLElement> tempdirs = root.getChildrenNamed(TEMP_DIR_ELEMENT_NAME);
-        if (null != tempdirs && tempdirs.size() > 0)
-        {
+        if (null != tempdirs && tempdirs.size() > 0) {
             Set<String> tempDirAttributeNames = new HashSet<String>();
-            for (IXMLElement tempdir : tempdirs)
-            {
+            for (IXMLElement tempdir : tempdirs) {
                 final String prefix;
-                if (tempdir.hasAttribute(TEMP_DIR_PREFIX_ATTRIBUTE))
-                {
+                if (tempdir.hasAttribute(TEMP_DIR_PREFIX_ATTRIBUTE)) {
                     prefix = tempdir.getAttribute("prefix");
-                }
-                else
-                {
+                } else {
                     prefix = DEFAULT_TEMP_DIR_PREFIX;
                 }
                 final String suffix;
-                if (tempdir.hasAttribute(TEMP_DIR_SUFFIX_ATTRIBUTE))
-                {
+                if (tempdir.hasAttribute(TEMP_DIR_SUFFIX_ATTRIBUTE)) {
                     suffix = tempdir.getAttribute(TEMP_DIR_SUFFIX_ATTRIBUTE);
-                }
-                else
-                {
+                } else {
                     suffix = DEFAULT_TEMP_DIR_SUFFIX;
                 }
                 final String variableName;
-                if (tempdir.hasAttribute(TEMP_DIR_VARIABLE_NAME_ATTRIBUTE))
-                {
+                if (tempdir.hasAttribute(TEMP_DIR_VARIABLE_NAME_ATTRIBUTE)) {
                     variableName = tempdir.getAttribute(TEMP_DIR_VARIABLE_NAME_ATTRIBUTE);
-                }
-                else
-                {
-                    if (tempDirAttributeNames.contains(TEMP_DIR_DEFAULT_PROPERTY_NAME))
-                    {
+                } else {
+                    if (tempDirAttributeNames.contains(TEMP_DIR_DEFAULT_PROPERTY_NAME)) {
                         throw new CompilerException(
                                 "Only one temporary directory may be specified without a " + TEMP_DIR_VARIABLE_NAME_ATTRIBUTE
                                         + " attribute. (Line: " + tempdir.getLineNr() + ").");
                     }
                     variableName = TEMP_DIR_DEFAULT_PROPERTY_NAME;
                 }
-                if (tempDirAttributeNames.contains(variableName))
-                {
+                if (tempDirAttributeNames.contains(variableName)) {
                     throw new CompilerException("Temporary directory variable names must be unique, the name "
-                                                        + variableName + " is used more than once. (Line: " + tempdir.getLineNr() + ").");
+                            + variableName + " is used more than once. (Line: " + tempdir.getLineNr() + ").");
                 }
                 tempDirAttributeNames.add(variableName);
                 info.addTempDir(new TempDir(variableName, prefix, suffix));
@@ -2632,15 +2245,14 @@ public class CompilerConfig extends Thread
         packager.setInfo(info);
         notifyCompilerListener("addInfoStrings", CompilerListener.END, data);
     }
-    
+
 
     /**
      * Builds the Info class from the XML tree (part that sets conditions).
      *
      * @param data The XML data. return The Info.
      */
-    private void addInfoConditional(IXMLElement data)
-    {
+    private void addInfoConditional(IXMLElement data) {
         notifyCompilerListener("addInfoConditional", CompilerListener.BEGIN, data);
         // Initialisation
         IXMLElement root = xmlCompilerHelper.requireChildNamed(data, "info");
@@ -2650,83 +2262,63 @@ public class CompilerConfig extends Thread
         // Privileged execution
         IXMLElement privileged = root.getFirstChildNamed("run-privileged");
         info.setRequirePrivilegedExecution(privileged != null);
-        if (privileged != null && privileged.hasAttribute("condition"))
-        {
+        if (privileged != null && privileged.hasAttribute("condition")) {
             info.setPrivilegedExecutionConditionID(parseConditionAttribute(privileged));
         }
 
         // Reboot if necessary
         IXMLElement reboot = root.getFirstChildNamed("rebootaction");
-        if (reboot != null)
-        {
+        if (reboot != null) {
             String content = reboot.getContent();
-            if ("ignore".equalsIgnoreCase(content))
-            {
+            if ("ignore".equalsIgnoreCase(content)) {
                 info.setRebootAction(Info.REBOOT_ACTION_IGNORE);
-            }
-            else if ("notice".equalsIgnoreCase(content))
-            {
+            } else if ("notice".equalsIgnoreCase(content)) {
                 info.setRebootAction(Info.REBOOT_ACTION_NOTICE);
-            }
-            else if ("ask".equalsIgnoreCase(content))
-            {
+            } else if ("ask".equalsIgnoreCase(content)) {
                 info.setRebootAction(Info.REBOOT_ACTION_ASK);
-            }
-            else if ("always".equalsIgnoreCase(content))
-            {
+            } else if ("always".equalsIgnoreCase(content)) {
                 info.setRebootAction(Info.REBOOT_ACTION_ALWAYS);
-            }
-            else
-            {
+            } else {
                 throw new CompilerException("Invalid value ''" + content + "'' of element ''reboot''");
             }
 
             String conditionId = parseConditionAttribute(reboot);
-            if (conditionId != null)
-            {
+            if (conditionId != null) {
                 info.setRebootActionConditionID(conditionId);
             }
         }
 
         // Add the uninstaller as a resource if specified
         IXMLElement uninstallInfo = root.getFirstChildNamed("uninstaller");
-        if (xmlCompilerHelper.validateYesNoAttribute(uninstallInfo, "write", YES))
-        {
+        if (xmlCompilerHelper.validateYesNoAttribute(uninstallInfo, "write", YES)) {
             logger.info("Adding uninstaller");
 
             //REFACTOR Change the way uninstaller is created
             mergeManager.addResourceToMerge("com/izforge/izpack/uninstaller/");
             mergeManager.addResourceToMerge("uninstaller-META-INF/");
 
-            if (privileged != null)
-            {
+            if (privileged != null) {
                 // default behavior for uninstaller elevation: elevate if installer has to be elevated too
                 info.setRequirePrivilegedExecutionUninstaller(
-                        xmlCompilerHelper.validateYesNoAttribute(privileged,"uninstaller", YES));
+                        xmlCompilerHelper.validateYesNoAttribute(privileged, "uninstaller", YES));
             }
 
-            if (uninstallInfo != null)
-            {
+            if (uninstallInfo != null) {
                 String uninstallerName = uninstallInfo.getAttribute("name");
-                if (uninstallerName != null && uninstallerName.length() > ".jar".length())
-                {
+                if (uninstallerName != null && uninstallerName.length() > ".jar".length()) {
                     info.setUninstallerName(uninstallerName);
                 }
                 String uninstallerPath = uninstallInfo.getAttribute("path");
-                if (uninstallerPath != null)
-                {
+                if (uninstallerPath != null) {
                     info.setUninstallerPath(uninstallerPath);
                 }
                 String conditionId = parseConditionAttribute(uninstallInfo);
-                if (conditionId != null)
-                {
-                  // there's a condition for uninstaller
-                  info.setUninstallerCondition(conditionId);
+                if (conditionId != null) {
+                    // there's a condition for uninstaller
+                    info.setUninstallerCondition(conditionId);
                 }
             }
-        }
-        else
-        {
+        } else {
             logger.info("Disable uninstaller");
             info.setUninstallerPath(null);
         }
@@ -2762,24 +2354,20 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    protected void addVariables(IXMLElement data) throws CompilerException
-    {
+    protected void addVariables(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addVariables", CompilerListener.BEGIN, data);
         // We get the varible list
         IXMLElement root = data.getFirstChildNamed("variables");
-        if (root == null)
-        {
+        if (root == null) {
             return;
         }
 
         Properties variables = packager.getVariables();
 
-        for (IXMLElement variableNode : root.getChildrenNamed("variable"))
-        {
+        for (IXMLElement variableNode : root.getChildrenNamed("variable")) {
             String name = xmlCompilerHelper.requireAttribute(variableNode, "name");
             String value = xmlCompilerHelper.requireAttribute(variableNode, "value");
-            if (variables.contains(name))
-            {
+            if (variables.contains(name)) {
                 assertionHelper.parseWarn(variableNode, "Variable '" + name + "' being overwritten");
             }
             variables.setProperty(name, value);
@@ -2793,25 +2381,16 @@ public class CompilerConfig extends Thread
         notifyCompilerListener("addVariables", CompilerListener.END, data);
     }
 
-    private int getConfigFileType(String varname, String type) throws CompilerException
-    {
+    private int getConfigFileType(String varname, String type) throws CompilerException {
         int filetype = ConfigFileValue.CONFIGFILE_TYPE_OPTIONS;
-        if (type != null)
-        {
-            if (type.equalsIgnoreCase("options"))
-            {
+        if (type != null) {
+            if (type.equalsIgnoreCase("options")) {
                 filetype = ConfigFileValue.CONFIGFILE_TYPE_OPTIONS;
-            }
-            else if (type.equalsIgnoreCase("xml"))
-            {
+            } else if (type.equalsIgnoreCase("xml")) {
                 filetype = ConfigFileValue.CONFIGFILE_TYPE_XML;
-            }
-            else if (type.equalsIgnoreCase("ini"))
-            {
+            } else if (type.equalsIgnoreCase("ini")) {
                 filetype = ConfigFileValue.CONFIGFILE_TYPE_INI;
-            }
-            else
-            {
+            } else {
                 assertionHelper.parseError(
                         "Error in definition of dynamic variable " + varname + ": Unknown entry type " + type);
             }
@@ -2819,18 +2398,15 @@ public class CompilerConfig extends Thread
         return filetype;
     }
 
-    protected void addDynamicVariables(IXMLElement data) throws CompilerException
-    {
+    protected void addDynamicVariables(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addDynamicVariables", CompilerListener.BEGIN, data);
         // We get the dynamic variable list
         IXMLElement root = data.getFirstChildNamed("dynamicvariables");
-        if (root == null)
-        {
+        if (root == null) {
             return;
         }
 
-        for (IXMLElement var : root.getChildrenNamed("variable"))
-        {
+        for (IXMLElement var : root.getChildrenNamed("variable")) {
             String name = xmlCompilerHelper.requireAttribute(var, "name");
 
             DynamicVariable dynamicVariable = new DynamicVariableImpl();
@@ -2838,18 +2414,13 @@ public class CompilerConfig extends Thread
 
             // Check for plain value
             String value = var.getAttribute("value");
-            if (value != null)
-            {
+            if (value != null) {
                 dynamicVariable.setValue(new PlainValue(value));
-            }
-            else
-            {
+            } else {
                 IXMLElement valueElement = var.getFirstChildNamed("value");
-                if (valueElement != null)
-                {
+                if (valueElement != null) {
                     value = valueElement.getContent();
-                    if (value == null)
-                    {
+                    if (value == null) {
                         assertionHelper.parseError("Empty value element for dynamic variable " + name);
                     }
                     dynamicVariable.setValue(new PlainValue(value));
@@ -2857,201 +2428,157 @@ public class CompilerConfig extends Thread
             }
             // Check for environment variable value
             value = var.getAttribute("environment");
-            if (value != null)
-            {
-                if (dynamicVariable.getValue() == null)
-                {
+            if (value != null) {
+                if (dynamicVariable.getValue() == null) {
                     dynamicVariable.setValue(new EnvironmentValue(value));
-                }
-                else
-                {
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError("Ambiguous environment value definition for dynamic variable " + name);
                 }
             }
             // Check for registry value
             value = var.getAttribute("regkey");
-            if (value != null)
-            {
+            if (value != null) {
                 String regvalue = var.getAttribute("regvalue");
-                if (dynamicVariable.getValue() == null)
-                {
+                if (dynamicVariable.getValue() == null) {
                     dynamicVariable.setValue(new RegistryValue(value, regvalue));
-                }
-                else
-                {
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError("Ambiguous registry value definition for dynamic variable " + name);
                 }
             }
             // Check for value from plain config file
             value = var.getAttribute("file");
-            if (value != null)
-            {
+            if (value != null) {
                 String stype = var.getAttribute("type");
                 String filesection = var.getAttribute("section");
                 String filekey = xmlCompilerHelper.requireAttribute(var, "key");
                 String escapeVal = var.getAttribute("escape");
                 boolean escape = true;
-                if (escapeVal != null)
-                {
+                if (escapeVal != null) {
                     escape = Boolean.parseBoolean(escapeVal);
                 }
-                if (dynamicVariable.getValue() == null)
-                {
+                if (dynamicVariable.getValue() == null) {
                     dynamicVariable.setValue(new PlainConfigFileValue(value, getConfigFileType(
                             name, stype), filesection, filekey, escape));
-                }
-                else
-                {
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError("Ambiguous file value definition for dynamic variable " + name);
                 }
             }
             // Check for value from config file entry in a zip file
             value = var.getAttribute("zipfile");
-            if (value != null)
-            {
+            if (value != null) {
                 String entryname = xmlCompilerHelper.requireAttribute(var, "entry");
                 String stype = var.getAttribute("type");
                 String filesection = var.getAttribute("section");
                 String filekey = xmlCompilerHelper.requireAttribute(var, "key");
                 String escapeVal = var.getAttribute("escape");
                 boolean escape = true;
-                if (escapeVal != null)
-                {
+                if (escapeVal != null) {
                     escape = Boolean.parseBoolean(escapeVal);
                 }
-                if (dynamicVariable.getValue() == null)
-                {
+                if (dynamicVariable.getValue() == null) {
                     dynamicVariable.setValue(new ZipEntryConfigFileValue(value, entryname,
-                                                                         getConfigFileType(name, stype), filesection,
-                                                                         filekey, escape));
-                }
-                else
-                {
+                            getConfigFileType(name, stype), filesection,
+                            filekey, escape));
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError("Ambiguous file value definition for dynamic variable " + name);
                 }
             }
             // Check for value from config file entry in a jar file
             value = var.getAttribute("jarfile");
-            if (value != null)
-            {
+            if (value != null) {
                 String entryname = xmlCompilerHelper.requireAttribute(var, "entry");
                 String stype = var.getAttribute("type");
                 String filesection = var.getAttribute("section");
                 String filekey = xmlCompilerHelper.requireAttribute(var, "key");
                 String escapeVal = var.getAttribute("escape");
                 boolean escape = true;
-                if (escapeVal != null)
-                {
+                if (escapeVal != null) {
                     escape = Boolean.parseBoolean(escapeVal);
                 }
-                if (dynamicVariable.getValue() == null)
-                {
+                if (dynamicVariable.getValue() == null) {
                     dynamicVariable.setValue(new JarEntryConfigValue(value, entryname,
-                                                                     getConfigFileType(name, stype), filesection,
-                                                                     filekey, escape));
-                }
-                else
-                {
+                            getConfigFileType(name, stype), filesection,
+                            filekey, escape));
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError("Ambiguous file value definition for dynamic variable " + name);
                 }
             }
             // Check for result of execution
             value = var.getAttribute("executable");
-            if (value != null)
-            {
-                if (dynamicVariable.getValue() == null)
-                {
+            if (value != null) {
+                if (dynamicVariable.getValue() == null) {
                     String dir = var.getAttribute(DIR_ATTRIBUTE);
                     String exectype = var.getAttribute("type");
                     String boolval = var.getAttribute("stderr");
                     boolean stderr = true;
-                    if (boolval != null)
-                    {
+                    if (boolval != null) {
                         stderr = Boolean.parseBoolean(boolval);
                     }
 
-                    if (value.length() <= 0)
-                    {
+                    if (value.length() <= 0) {
                         assertionHelper.parseError("No command given in definition of dynamic variable " + name);
                     }
                     Vector<String> cmd = new Vector<String>();
                     cmd.add(value);
                     List<IXMLElement> args = var.getChildrenNamed("arg");
-                    if (args != null)
-                    {
-                        for (IXMLElement arg : args)
-                        {
+                    if (args != null) {
+                        for (IXMLElement arg : args) {
                             String content = arg.getContent();
-                            if (content != null)
-                            {
+                            if (content != null) {
                                 cmd.add(content);
                             }
                         }
                     }
                     String[] cmdarr = new String[cmd.size()];
-                    if (exectype == null || exectype.equalsIgnoreCase("process"))
-                    {
+                    if (exectype == null || exectype.equalsIgnoreCase("process")) {
                         dynamicVariable.setValue(new ExecValue(cmd.toArray(cmdarr), dir, false, stderr));
-                    }
-                    else if (exectype.equalsIgnoreCase("shell"))
-                    {
+                    } else if (exectype.equalsIgnoreCase("shell")) {
                         dynamicVariable.setValue(new ExecValue(cmd.toArray(cmdarr), dir, true, stderr));
-                    }
-                    else
-                    {
+                    } else {
                         assertionHelper.parseError(
                                 "Bad execution type " + exectype + " given for dynamic variable " + name);
                     }
-                }
-                else
-                {
+                } else {
                     // unexpected combination of variable attributes
                     assertionHelper.parseError(
                             "Ambiguous execution output value definition for dynamic variable " + name);
                 }
             }
 
-            if (dynamicVariable.getValue() == null)
-            {
+            if (dynamicVariable.getValue() == null) {
                 assertionHelper.parseError("No value specified at all for dynamic variable " + name);
             }
 
             // Check whether dynamic variable has to be evaluated only once during installation
             value = var.getAttribute("checkonce");
-            if (value != null)
-            {
+            if (value != null) {
                 dynamicVariable.setCheckonce(Boolean.valueOf(value));
             }
 
             // Check whether dynamic variable should be automatically unset if its condition is not met
             value = var.getAttribute("unset");
-            if (value != null)
-            {
+            if (value != null) {
                 dynamicVariable.setAutoUnset(Boolean.valueOf(value));
             }
 
             // Check whether evaluation failures of the dynamic variable should be ignored
             value = var.getAttribute("ignorefailure");
-            if (value != null)
-            {
+            if (value != null) {
                 dynamicVariable.setIgnoreFailure(Boolean.valueOf(value));
             }
 
             // Nested value filters
             IXMLElement filters = var.getFirstChildNamed("filters");
-            if (filters != null)
-            {
+            if (filters != null) {
                 List<IXMLElement> filterList = filters.getChildren();
-                for (IXMLElement filterElement : filterList)
-                {
+                for (IXMLElement filterElement : filterList) {
                     String filterName = filterElement.getName();
-                    if (filterName.equals("regex"))
-                    {
+                    if (filterName.equals("regex")) {
                         String expression = filterElement.getAttribute("regexp");
                         String selectexpr = filterElement.getAttribute("select");
                         String replaceexpr = filterElement.getAttribute("replace");
@@ -3064,36 +2591,26 @@ public class CompilerConfig extends Thread
                                         replaceexpr, defaultvalue,
                                         Boolean.valueOf(scasesensitive != null ? scasesensitive : "true"),
                                         Boolean.valueOf(sglobal != null ? sglobal : "false")));
-                    }
-                    else if (filterName.equals("location"))
-                    {
+                    } else if (filterName.equals("location")) {
                         String basedir = filterElement.getAttribute("basedir");
                         dynamicVariable.addFilter(new LocationFilter(basedir));
-                    }
-                    else if (filterName.equals("case"))
-                    {
+                    } else if (filterName.equals("case")) {
                         String style = filterElement.getAttribute("style");
                         dynamicVariable.addFilter(new CaseStyleFilter(style));
-                    }
-                    else
-                    {
+                    } else {
                         assertionHelper.parseError(String.format("Unknown filter '%s'", filterName));
                     }
                 }
             }
-            try
-            {
+            try {
                 dynamicVariable.validate();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 assertionHelper.parseError(
                         "Error in definition of dynamic variable " + name + ": " + e.getMessage());
             }
 
             String conditionId = parseConditionAttribute(var);
-            if (conditionId != null)
-            {
+            if (conditionId != null) {
                 dynamicVariable.setConditionid(conditionId);
             }
 
@@ -3102,56 +2619,43 @@ public class CompilerConfig extends Thread
         notifyCompilerListener("addDynamicVariables", CompilerListener.END, data);
     }
 
-    private void addDynamicVariable(IXMLElement varXml, int index, String name, DynamicVariable dynamicVariable)
-    {
+    private void addDynamicVariable(IXMLElement varXml, int index, String name, DynamicVariable dynamicVariable) {
         Map<String, List<DynamicVariable>> dynamicvariables = packager.getDynamicVariables();
         List<DynamicVariable> dynamicValues;
 
-        if (dynamicvariables.containsKey(name))
-        {
+        if (dynamicvariables.containsKey(name)) {
             dynamicValues = dynamicvariables.get(name);
-        }
-        else
-        {
+        } else {
             dynamicValues = new ArrayList<DynamicVariable>();
             dynamicvariables.put(name, dynamicValues);
         }
 
-        if (dynamicValues.remove(dynamicVariable))
-        {
+        if (dynamicValues.remove(dynamicVariable)) {
             assertionHelper.parseWarn(varXml, "Variable definition '" + dynamicVariable.toString() + "' will be overwritten");
         }
-        if (index < 0)
-        {
+        if (index < 0) {
             dynamicValues.add(dynamicVariable);
-        }
-        else
-        {
+        } else {
             dynamicValues.add(index, dynamicVariable);
         }
     }
 
-    private void addDynamicVariable(IXMLElement varXml, String name, DynamicVariable dynamicVariable)
-    {
+    private void addDynamicVariable(IXMLElement varXml, String name, DynamicVariable dynamicVariable) {
         addDynamicVariable(varXml, -1, name, dynamicVariable);
     }
 
-    private void addDynamicInstallerRequirement(IXMLElement data) throws CompilerException
-    {
+    private void addDynamicInstallerRequirement(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addDynamicInstallerRequirements", CompilerListener.BEGIN, data);
         // We get the dynamic variable list
         IXMLElement root = data.getFirstChildNamed("dynamicinstallerrequirements");
         List<DynamicInstallerRequirementValidator> dynamicReq = packager.getDynamicInstallerRequirements();
 
-        if (root != null)
-        {
+        if (root != null) {
             List<IXMLElement> installerRequirementList = root
                     .getChildrenNamed("installerrequirement");
-            for (IXMLElement installerrequirement : installerRequirementList)
-            {
+            for (IXMLElement installerrequirement : installerRequirementList) {
                 Status severity = Status.valueOf(xmlCompilerHelper.requireAttribute(installerrequirement, "severity"));
-                if (severity == Status.OK)
-                {
+                if (severity == Status.OK) {
                     assertionHelper.parseError(installerrequirement, "invalid value for attribute \"severity\"");
                 }
 
@@ -3171,54 +2675,41 @@ public class CompilerConfig extends Thread
      * @param data the conditions configuration
      * @throws CompilerException an error occured during compiling
      */
-    private void addConditions(IXMLElement data) throws CompilerException
-    {
+    private void addConditions(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addConditions", CompilerListener.BEGIN, data);
         // We get the condition list
         IXMLElement root = data.getFirstChildNamed("conditions");
         Map<String, Condition> conditions = packager.getRules();
-        if (root != null)
-        {
-            for (IXMLElement conditionNode : root.getChildrenNamed("condition"))
-            {
-                try
-                {
+        if (root != null) {
+            for (IXMLElement conditionNode : root.getChildrenNamed("condition")) {
+                try {
                     // Workaround for reading user-defined conditions with fully defined class name
                     // from compile-time classpath
                     String className = rules.getClassName(conditionNode.getAttribute("type"));
 
                     Class<Condition> conditionClass = classLoader.loadClass(className, Condition.class);
                     Condition condition = rules.createCondition(conditionNode, conditionClass);
-                    if (condition != null)
-                    {
+                    if (condition != null) {
                         String conditionid = condition.getId();
-                        if (conditions.put(conditionid, condition) != null)
-                        {
+                        if (conditions.put(conditionid, condition) != null) {
                             assertionHelper.parseWarn(conditionNode,
-                                                      "Condition with id '" + conditionid
-                                                              + "' has been overwritten");
+                                    "Condition with id '" + conditionid
+                                            + "' has been overwritten");
                         }
-                    }
-                    else
-                    {
+                    } else {
                         assertionHelper.parseError(conditionNode, "Error instantiating condition");
                     }
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     throw new CompilerException("Error reading condition at line "
-                                                        + conditionNode.getLineNr() + ": "
-                                                        + e.getMessage(), e);
+                            + conditionNode.getLineNr() + ": "
+                            + e.getMessage(), e);
                 }
             }
-            try
-            {
+            try {
                 rules.resolveConditions();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new CompilerException("Conditions check failed: "
-                                                    + e.getMessage(), e);
+                        + e.getMessage(), e);
             }
         }
         notifyCompilerListener("addConditions", CompilerListener.END, data);
@@ -3251,16 +2742,13 @@ public class CompilerConfig extends Thread
      * @param data The XML data.
      * @throws CompilerException Description of the Exception
      */
-    private void substituteProperties(IXMLElement data) throws CompilerException
-    {
+    private void substituteProperties(IXMLElement data) throws CompilerException {
         notifyCompilerListener("substituteProperties", CompilerListener.BEGIN, data);
 
         IXMLElement root = data.getFirstChildNamed("properties");
-        if (root != null)
-        {
+        if (root != null) {
             // add individual properties
-            for (IXMLElement propertyNode : root.getChildrenNamed("property"))
-            {
+            for (IXMLElement propertyNode : root.getChildrenNamed("property")) {
                 propertyManager.execute(propertyNode);
             }
         }
@@ -3269,14 +2757,12 @@ public class CompilerConfig extends Thread
         // the remaining DOM, and replace properties branch.
         // TODO: enhance IXMLElement with an "indexOf(IXMLElement)" method
         // and addChild(IXMLElement, int) so returns to the same place.
-        if (root != null)
-        {
+        if (root != null) {
             data.removeChild(root);
         }
 
         substituteAllProperties(data);
-        if (root != null)
-        {
+        if (root != null) {
             data.addChild(root);
         }
 
@@ -3286,69 +2772,54 @@ public class CompilerConfig extends Thread
     /**
      * Perform recursive substitution on all properties
      */
-    private void substituteAllProperties(IXMLElement element) throws CompilerException
-    {
+    private void substituteAllProperties(IXMLElement element) throws CompilerException {
         Enumeration<String> attributes = element.enumerateAttributeNames();
-        while (attributes.hasMoreElements())
-        {
+        while (attributes.hasMoreElements()) {
             String name = attributes.nextElement();
-            try
-            {
+            try {
                 String value = variableSubstitutor.substitute(element.getAttribute(name), SubstitutionType.TYPE_AT);
                 element.setAttribute(name, value);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 assertionHelper.parseWarn(element, "Value of attribute \"" + name + "\" could not be substituted ("
                         + e.getMessage() + ")");
             }
         }
 
         String content = element.getContent();
-        if (content != null)
-        {
-            try
-            {
+        if (content != null) {
+            try {
                 element.setContent(variableSubstitutor.substitute(content, SubstitutionType.TYPE_AT));
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 assertionHelper.parseWarn(element, "Embedded content could not be substituted ("
                         + e.getMessage() + ")");
             }
         }
 
-        for (int i = 0; i < element.getChildren().size(); i++)
-        {
+        for (int i = 0; i < element.getChildren().size(); i++) {
             IXMLElement child = element.getChildren().get(i);
             substituteAllProperties(child);
         }
     }
 
-    private OverrideType getOverrideValue(IXMLElement fileElement) throws CompilerException
-    {
+    private OverrideType getOverrideValue(IXMLElement fileElement) throws CompilerException {
         String override_val = fileElement.getAttribute("override");
-        if (override_val == null)
-        {
+        if (override_val == null) {
             return OverrideType.OVERRIDE_UPDATE;
         }
 
         OverrideType override = OverrideType.getOverrideTypeFromAttribute(override_val);
-        if (override == null)
-        {
+        if (override == null) {
             assertionHelper.parseError(fileElement, "invalid value for attribute \"override\"");
         }
 
         return override;
     }
 
-    private String getOverrideRenameToValue(IXMLElement f) throws CompilerException
-    {
+    private String getOverrideRenameToValue(IXMLElement f) throws CompilerException {
         String override_val = f.getAttribute("override");
         String overrideRenameTo = f.getAttribute("overrideRenameTo");
 
-        if (overrideRenameTo != null && override_val == null)
-        {
+        if (overrideRenameTo != null && override_val == null) {
             assertionHelper.parseError(f, "Attribute \"overrideRenameTo\" requires attribute \"override\" to be set");
         }
 
@@ -3364,32 +2835,25 @@ public class CompilerConfig extends Thread
      * @param osList           constraint list to maintain and return
      * @throws CompilerException an error occured during compiling
      */
-    private Blockable getBlockableValue(IXMLElement blockableElement, List<OsModel> osList) throws CompilerException
-    {
+    private Blockable getBlockableValue(IXMLElement blockableElement, List<OsModel> osList) throws CompilerException {
         String blockable_val = blockableElement.getAttribute("blockable");
-        if (blockable_val == null)
-        {
+        if (blockable_val == null) {
             return Blockable.BLOCKABLE_NONE;
         }
         Blockable blockable = Blockable.getBlockableFromAttribute(blockable_val);
-        if (blockable == null)
-        {
+        if (blockable == null) {
             assertionHelper.parseError(blockableElement, "invalid value for attribute \"blockable\"");
         }
 
-        if (blockable != Blockable.BLOCKABLE_NONE)
-        {
+        if (blockable != Blockable.BLOCKABLE_NONE) {
             boolean found = false;
-            for (OsModel anOsList : osList)
-            {
-                if ("windows".equals(anOsList.getFamily()))
-                {
+            for (OsModel anOsList : osList) {
+                if ("windows".equals(anOsList.getFamily())) {
                     found = true;
                 }
             }
 
-            if (!found)
-            {
+            if (!found) {
                 // We cannot add this constraint here explicitly, because it the copied files might be multi-platform.
                 // Print out a warning to inform the user about this fact.
                 //osList.add(new OsModel("windows", null, null, null));
@@ -3399,19 +2863,13 @@ public class CompilerConfig extends Thread
         return blockable;
     }
 
-    private boolean validateYesNo(String value)
-    {
+    private boolean validateYesNo(String value) {
         boolean result;
-        if ("yes".equalsIgnoreCase(value))
-        {
+        if ("yes".equalsIgnoreCase(value)) {
             result = true;
-        }
-        else if ("no".equalsIgnoreCase(value))
-        {
+        } else if ("no".equalsIgnoreCase(value)) {
             result = false;
-        }
-        else
-        {
+        } else {
             result = Boolean.valueOf(value);
         }
         return result;
@@ -3423,18 +2881,14 @@ public class CompilerConfig extends Thread
      * @param data the XML data
      * @throws CompilerException if listeners cannot be added
      */
-    private void addListeners(IXMLElement data) throws CompilerException
-    {
+    private void addListeners(IXMLElement data) throws CompilerException {
         notifyCompilerListener("addListeners", CompilerListener.BEGIN, data);
         IXMLElement listeners = data.getFirstChildNamed("listeners");
-        if (listeners != null)
-        {
-            for (IXMLElement listener : listeners.getChildrenNamed("listener"))
-            {
+        if (listeners != null) {
+            for (IXMLElement listener : listeners.getChildrenNamed("listener")) {
                 String className = xmlCompilerHelper.requireAttribute(listener, "classname");
                 Stage stage = Stage.valueOf(xmlCompilerHelper.requireAttribute(listener, "stage"));
-                if (Stage.isInInstaller(stage))
-                {
+                if (Stage.isInInstaller(stage)) {
                     List<OsModel> constraints = OsConstraintHelper.getOsList(listener);
                     compiler.addListener(className, stage, constraints);
                 }
@@ -3446,36 +2900,27 @@ public class CompilerConfig extends Thread
     /**
      * Register compiler listeners to be notified during compilation.
      */
-    private void addCompilerListeners(IXMLElement data) throws CompilerException
-    {
+    private void addCompilerListeners(IXMLElement data) throws CompilerException {
         IXMLElement listeners = data.getFirstChildNamed("listeners");
-        if (listeners != null)
-        {
-            for (IXMLElement listener : listeners.getChildrenNamed("listener"))
-            {
+        if (listeners != null) {
+            for (IXMLElement listener : listeners.getChildrenNamed("listener")) {
                 String className = xmlCompilerHelper.requireAttribute(listener, "classname");
                 Stage stage = Stage.valueOf(xmlCompilerHelper.requireAttribute(listener, "stage"));
                 // only process specs for stage="compiler" listeners
-                if (Stage.compiler.equals(stage))
-                {
+                if (Stage.compiler.equals(stage)) {
                     // check <os/> specs to see if we need to instantiate and notify this listener
                     List<OsModel> osConstraints = OsConstraintHelper.getOsList(listener);
                     boolean matchesCurrentSystem = false;
-                    if (osConstraints.isEmpty())
-                    {
+                    if (osConstraints.isEmpty()) {
                         // assume listener required if no <os/> specs are present in the install file
                         matchesCurrentSystem = true;
-                    }
-                    else
-                    {
-                        if (constraints.matchesCurrentPlatform(osConstraints))
-                        {
+                    } else {
+                        if (constraints.matchesCurrentPlatform(osConstraints)) {
                             matchesCurrentSystem = true;
                         }
                     }
                     // instantiate an instance of the listener only if we're on a system of the specified type
-                    if (matchesCurrentSystem)
-                    {
+                    if (matchesCurrentSystem) {
                         Class<CompilerListener> clazz = classLoader.loadClass(className, CompilerListener.class);
                         CompilerListener l = factory.create(clazz, CompilerListener.class);
                         compilerListeners.add(l);
@@ -3492,10 +2937,8 @@ public class CompilerConfig extends Thread
      * @param state      CompileListener.BEGIN or END
      * @param data       current install data
      */
-    private void notifyCompilerListener(String callerName, int state, IXMLElement data)
-    {
-        for (CompilerListener compilerListener : compilerListeners)
-        {
+    private void notifyCompilerListener(String callerName, int state, IXMLElement data) {
+        for (CompilerListener compilerListener : compilerListeners) {
             compilerListener.notify(callerName, state, data, packager);
         }
 
@@ -3507,18 +2950,13 @@ public class CompilerConfig extends Thread
      * @param fileElement file releated XML node
      * @return a map with the additional attributes
      */
-    private Map<String, ?> getAdditionals(IXMLElement fileElement) throws CompilerException
-    {
-        Map<String,?> retval = null;
-        try
-        {
-            for (CompilerListener compilerListener : compilerListeners)
-            {
+    private Map<String, ?> getAdditionals(IXMLElement fileElement) throws CompilerException {
+        Map<String, ?> retval = null;
+        try {
+            for (CompilerListener compilerListener : compilerListeners) {
                 retval = compilerListener.reviseAdditionalDataMap(retval, fileElement);
             }
-        }
-        catch (CompilerException ce)
-        {
+        } catch (CompilerException ce) {
             assertionHelper.parseError(fileElement, ce.getMessage());
         }
         return (retval);
@@ -3541,53 +2979,40 @@ public class CompilerConfig extends Thread
      *
      * @throws CompilerException an error occured during compiling
      */
-    private void addMergedTranslationResources(Map<String, List<URL>> resourceUrlMap) throws CompilerException
-    {
+    private void addMergedTranslationResources(Map<String, List<URL>> resourceUrlMap) throws CompilerException {
         // just one packslang file. nothing to do here
-        if (resourceUrlMap.size() <= 0)
-        {
+        if (resourceUrlMap.size() <= 0) {
             return;
         }
 
         OutputStream os = null;
-        try
-        {
+        try {
             // loop through all packsLang resources, e.g. packsLang.xml_eng, packsLang.xml_deu, ...
-            for (String id : resourceUrlMap.keySet())
-            {
+            for (String id : resourceUrlMap.keySet()) {
                 URL mergedPackLangFileURL;
 
                 List<URL> packsLangURLs = resourceUrlMap.get(id);
-                if (packsLangURLs.size() == 0)
-                {
+                if (packsLangURLs.size() == 0) {
                     continue;
                 } // should not occur
 
-                if (packsLangURLs.size() == 1)
-                {
+                if (packsLangURLs.size() == 1) {
                     // no need to merge files. just use the first URL
                     mergedPackLangFileURL = packsLangURLs.get(0);
-                }
-                else
-                {
+                } else {
                     IXMLElement mergedPacksLang = null;
 
                     // loop through all that belong to the given identifier
-                    for (URL packslangURL : packsLangURLs)
-                    {
+                    for (URL packslangURL : packsLangURLs) {
                         // parsing xml
                         IXMLElement xml = new XMLParser(false).parse(packslangURL);
-                        if (mergedPacksLang == null)
-                        {
+                        if (mergedPacksLang == null) {
                             // just keep the first file
                             mergedPacksLang = xml;
-                        }
-                        else
-                        {
+                        } else {
                             // append data of all xml-docs into the first document
                             List<IXMLElement> langStrings = xml.getChildrenNamed("str");
-                            for (IXMLElement langString : langStrings)
-                            {
+                            for (IXMLElement langString : langStrings) {
                                 mergedPacksLang.addChild(langString);
                             }
                         }
@@ -3608,22 +3033,14 @@ public class CompilerConfig extends Thread
 
                 packager.addResource(id, mergedPackLangFileURL);
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new CompilerException("Unable to merge multiple " + Resources.PACK_TRANSLATIONS_RESOURCE_NAME + " files: "
-                                                + e.getMessage(), e);
-        }
-        finally
-        {
-            if (null != os)
-            {
-                try
-                {
+                    + e.getMessage(), e);
+        } finally {
+            if (null != os) {
+                try {
                     os.close();
-                }
-                catch (IOException e)
-                {
+                } catch (IOException e) {
                     // ignore as there is nothing we can realistically do
                     // so lets at least try to close the input stream
                 }
@@ -3638,37 +3055,30 @@ public class CompilerConfig extends Thread
      * @param panel    the panel
      * @throws CompilerException an error occured during compiling
      */
-    private void addPanelActions(IXMLElement xmlPanel, Panel panel) throws CompilerException
-    {
+    private void addPanelActions(IXMLElement xmlPanel, Panel panel) throws CompilerException {
         IXMLElement xmlActions = xmlPanel.getFirstChildNamed(PanelAction.PANEL_ACTIONS_TAG);
-        if (xmlActions != null)
-        {
+        if (xmlActions != null) {
             List<IXMLElement> actionList = xmlActions.getChildrenNamed(PanelAction.PANEL_ACTION_TAG);
-            if (actionList != null)
-            {
-                for (IXMLElement action : actionList)
-                {
+            if (actionList != null) {
+                for (IXMLElement action : actionList) {
                     String stage = xmlCompilerHelper.requireAttribute(action, PanelAction.PANEL_ACTION_STAGE_TAG);
                     String actionName = xmlCompilerHelper.requireAttribute(action,
-                                                                           PanelAction.PANEL_ACTION_CLASSNAME_TAG);
+                            PanelAction.PANEL_ACTION_CLASSNAME_TAG);
                     Class<PanelAction> actionType = classLoader.loadClass(actionName, PanelAction.class);
 
                     List<IXMLElement> params = action.getChildrenNamed("param");
                     PanelActionConfiguration config = new PanelActionConfiguration(actionType.getName());
 
-                    for (IXMLElement param : params)
-                    {
+                    for (IXMLElement param : params) {
                         String name = xmlCompilerHelper.requireAttribute(param, "name");
                         String value = xmlCompilerHelper.requireAttribute(param, "value");
                         logger.fine("Adding configuration property " + name + " with value "
-                                            + value + " for action " + actionName);
+                                + value + " for action " + actionName);
                         config.addProperty(name, value);
                     }
-                    try
-                    {
+                    try {
                         PanelAction.ActionStage actionStage = PanelAction.ActionStage.valueOf(stage);
-                        switch (actionStage)
-                        {
+                        switch (actionStage) {
                             case preconstruct:
                                 panel.addPreConstructionAction(config);
                                 break;
@@ -3682,45 +3092,34 @@ public class CompilerConfig extends Thread
                                 panel.addPostValidationAction(config);
                                 break;
                         }
-                    }
-                    catch (IllegalArgumentException e)
-                    {
+                    } catch (IllegalArgumentException e) {
                         assertionHelper.parseError(action, "Invalid value [" + stage + "] for attribute : "
                                 + PanelAction.PANEL_ACTION_STAGE_TAG);
                     }
                 }
-            }
-            else
-            {
+            } else {
                 assertionHelper.parseError(xmlActions, "<" + PanelAction.PANEL_ACTIONS_TAG + "> requires a <"
                         + PanelAction.PANEL_ACTION_TAG + ">");
             }
         }
     }
 
-    private List<TargetFileSet> readFileSets(IXMLElement parent, File baseDir) throws CompilerException
-    {
+    private List<TargetFileSet> readFileSets(IXMLElement parent, File baseDir) throws CompilerException {
         List<TargetFileSet> fslist = new ArrayList<TargetFileSet>();
-        for (IXMLElement fileSetNode : parent.getChildrenNamed("fileset"))
-        {
-            try
-            {
+        for (IXMLElement fileSetNode : parent.getChildrenNamed("fileset")) {
+            try {
                 fslist.add(readFileSet(fileSetNode, baseDir));
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 throw new CompilerException(e.getMessage());
             }
         }
         return fslist;
     }
 
-    private TargetFileSet readFileSet(IXMLElement fileSetNode, File baseDir) throws CompilerException
-    {
+    private TargetFileSet readFileSet(IXMLElement fileSetNode, File baseDir) throws CompilerException {
         String dir_attr = getDirSubstitutedAttributeValue(fileSetNode);
         File extractedBaseDir = baseDir;
-        if (dir_attr != null)
-        {
+        if (dir_attr != null) {
             extractedBaseDir = FileUtil.getAbsoluteFile(dir_attr, baseDir.getAbsolutePath());
         }
         String targetDir = fileSetNode.getAttribute("targetdir", "${INSTALL_PATH}");
@@ -3728,12 +3127,10 @@ public class CompilerConfig extends Thread
         return readFileSet(fileSetNode, extractedBaseDir, targetDir);
     }
 
-    private TargetFileSet readArchiveFileSet(IXMLElement fileSetNode, File baseDir, String targetDir) throws CompilerException
-    {
+    private TargetFileSet readArchiveFileSet(IXMLElement fileSetNode, File baseDir, String targetDir) throws CompilerException {
         String dir_attr = getDirSubstitutedAttributeValue(fileSetNode);
         File extractedBaseDir = baseDir;
-        if (dir_attr != null)
-        {
+        if (dir_attr != null) {
             extractedBaseDir = new File(baseDir, dir_attr);
             if (!extractedBaseDir.exists()) {
                 assertionHelper.parseError(fileSetNode, "Archive does not contain a base directory " + dir_attr);
@@ -3744,8 +3141,7 @@ public class CompilerConfig extends Thread
     }
 
 
-    private TargetFileSet readFileSet(IXMLElement fileSetNode, File baseDir, String targetDir) throws CompilerException
-    {
+    private TargetFileSet readFileSet(IXMLElement fileSetNode, File baseDir, String targetDir) throws CompilerException {
         TargetFileSet fs = new TargetFileSet();
 
         fs.setTargetDir(targetDir);
@@ -3756,47 +3152,38 @@ public class CompilerConfig extends Thread
         fs.setBlockable(getBlockableValue(fileSetNode, osList));
         fs.setAdditionals(getAdditionals(fileSetNode));
         String conditionId = parseConditionAttribute(fileSetNode);
-        if (conditionId != null)
-        {
+        if (conditionId != null) {
             fs.setCondition(conditionId);
         }
 
-        try
-        {
+        try {
             fs.setDir(baseDir);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             throw new CompilerException(e.getMessage());
         }
 
         String attr = fileSetNode.getAttribute("includes");
-        if (attr != null)
-        {
+        if (attr != null) {
             fs.setIncludes(attr);
         }
 
         attr = fileSetNode.getAttribute("excludes");
-        if (attr != null)
-        {
+        if (attr != null) {
             fs.setExcludes(attr);
         }
 
         String boolval = fileSetNode.getAttribute("casesensitive");
-        if (boolval != null)
-        {
+        if (boolval != null) {
             fs.setCaseSensitive(Boolean.parseBoolean(boolval));
         }
 
         boolval = fileSetNode.getAttribute("defaultexcludes");
-        if (boolval != null)
-        {
+        if (boolval != null) {
             fs.setDefaultexcludes(Boolean.parseBoolean(boolval));
         }
 
         boolval = fileSetNode.getAttribute("followsymlinks");
-        if (boolval != null)
-        {
+        if (boolval != null) {
             fs.setFollowSymlinks(Boolean.parseBoolean(boolval));
         }
 
@@ -3809,10 +3196,8 @@ public class CompilerConfig extends Thread
     }
 
     private void readAndAddIncludes(IXMLElement parent, TargetFileSet fileset)
-            throws CompilerException
-    {
-        for (IXMLElement f : parent.getChildrenNamed("include"))
-        {
+            throws CompilerException {
+        for (IXMLElement f : parent.getChildrenNamed("include")) {
             fileset.createInclude().setName(
                     variableSubstitutor.substitute(
                             xmlCompilerHelper.requireAttribute(f, "name")));
@@ -3820,24 +3205,19 @@ public class CompilerConfig extends Thread
     }
 
     private void readAndAddExcludes(IXMLElement parent, TargetFileSet fileset)
-            throws CompilerException
-    {
-        for (IXMLElement f : parent.getChildrenNamed("exclude"))
-        {
+            throws CompilerException {
+        for (IXMLElement f : parent.getChildrenNamed("exclude")) {
             fileset.createExclude().setName(
                     variableSubstitutor.substitute(
                             xmlCompilerHelper.requireAttribute(f, "name")));
         }
     }
 
-    private String parseConditionAttribute(IXMLElement element)
-    {
+    private String parseConditionAttribute(IXMLElement element) {
         String conditionId = element.getAttribute("condition");
-        if (conditionId != null)
-        {
+        if (conditionId != null) {
             List<IXMLElement> elList = referencedConditions.get(conditionId);
-            if (elList == null)
-            {
+            if (elList == null) {
                 elList = new ArrayList<IXMLElement>();
                 referencedConditions.put(conditionId, elList);
             }
@@ -3846,16 +3226,12 @@ public class CompilerConfig extends Thread
         return conditionId;
     }
 
-    private boolean checkReferencedConditions(Map<String, List<IXMLElement>> referringElements, AssertionHelper assertionHelper)
-    {
+    private boolean checkReferencedConditions(Map<String, List<IXMLElement>> referringElements, AssertionHelper assertionHelper) {
         boolean failure = false;
-        for (String conditionId : referringElements.keySet())
-        {
-            if (rules.getCondition(conditionId) == null)
-            {
+        for (String conditionId : referringElements.keySet()) {
+            if (rules.getCondition(conditionId) == null) {
                 List<IXMLElement> elList = referringElements.get(conditionId);
-                for (IXMLElement element : elList)
-                {
+                for (IXMLElement element : elList) {
                     assertionHelper.parseWarn(element,
                             "Expression '" + conditionId + "' contains reference(s) to undefined condition(s)");
                     failure = true;
@@ -3865,8 +3241,7 @@ public class CompilerConfig extends Thread
         return failure;
     }
 
-    private void checkReferencedConditions()
-    {
+    private void checkReferencedConditions() {
         boolean failure = checkReferencedConditions(referencedConditions, assertionHelper);
         failure |= checkReferencedConditions(referencedConditionsUserInputSpec,
                 new AssertionHelper("Resource " + UserInputPanelSpec.SPEC_FILE_NAME));
@@ -3874,112 +3249,97 @@ public class CompilerConfig extends Thread
                 new AssertionHelper("Resource " + AntActionInstallerListener.SPEC_FILE_NAME));
         failure |= checkReferencedConditions(referencedConditionsConfigurationActionSpec,
                 new AssertionHelper("Resource " + ConfigurationInstallerListener.SPEC_FILE_NAME));
-        if (failure)
-        {
+        if (failure) {
             throw new CompilerException("Cannot recover from reference(s) to undefined condition(s) listed above");
         }
     }
 
-    private void checkReferencedPacks()
-    {
+    private void checkReferencedPacks() {
         AssertionHelper antActionSpecAssertionHelper
                 = new AssertionHelper("Resource " + AntActionInstallerListener.SPEC_FILE_NAME);
         AssertionHelper configurationSpecAssertionHelper
                 = new AssertionHelper("Resource " + ConfigurationInstallerListener.SPEC_FILE_NAME);
         List<PackInfo> packs = packager.getPacksList();
         Set<String> definedPackNames = new HashSet<String>(packs.size());
-        for (PackInfo packInfo:packs)
-        {
+        for (PackInfo packInfo : packs) {
             definedPackNames.add(packInfo.getPack().getName());
         }
-        for (String packName : referencedPacksAntActionSpec.keySet())
-        {
-            if (!definedPackNames.contains(packName))
-            {
+        for (String packName : referencedPacksAntActionSpec.keySet()) {
+            if (!definedPackNames.contains(packName)) {
                 IXMLElement element = referencedPacksAntActionSpec.get(packName);
                 antActionSpecAssertionHelper.parseError(element,
                         "Expression '" + packName + "' refers to undefined pack");
             }
         }
-        for (String packName : referencedPacksConfigurationActionSpec.keySet())
-        {
-            if (!definedPackNames.contains(packName))
-            {
+        for (String packName : referencedPacksConfigurationActionSpec.keySet()) {
+            if (!definedPackNames.contains(packName)) {
                 IXMLElement element = referencedPacksConfigurationActionSpec.get(packName);
                 configurationSpecAssertionHelper.parseError(element,
                         "Expression '" + packName + "' refers to undefined pack");
             }
         }
     }
-    
+
     /**
      * Retrieves the substituted value of the given node's "src" attribute.
-     * 
+     *
      * @param node the node you want the "src" attribute value from
      * @return the substituted value of node's "src" attribute
      */
-    private String getSrcSubstitutedAttributeValue(IXMLElement node)
-    {
+    private String getSrcSubstitutedAttributeValue(IXMLElement node) {
         return getSubstitutedAttributeValue(node, SRC_ATTRIBUTE);
     }
 
     /**
      * Retrieves the substituted value of the given node's "dir" attribute.
-     * 
+     *
      * @param node the node you want the "dir" attribute value from
      * @return the substituted value of node's "dir" attribute
      */
-    private String getDirSubstitutedAttributeValue(IXMLElement node)
-    {
+    private String getDirSubstitutedAttributeValue(IXMLElement node) {
         return getSubstitutedAttributeValue(node, DIR_ATTRIBUTE);
     }
-    
+
     /**
      * Retrieves the substituted value of the given node's attribute.
-     * 
-     * @param node the XML node you want the attribute value from
+     *
+     * @param node      the XML node you want the attribute value from
      * @param attribute the attribute you want the value from
      * @return the substituted value
      */
-    private String getSubstitutedAttributeValue(IXMLElement node, String attribute)
-    {
+    private String getSubstitutedAttributeValue(IXMLElement node, String attribute) {
         String attributeValue = xmlCompilerHelper.requireAttribute(node, attribute);
         return variableSubstitutor.substitute(attributeValue);
     }
 
     // Logging helper methods
 
-    private void logAddingFile(String source, String target)
-    {
+    private void logAddingFile(String source, String target) {
         logger.log(Level.FINE, "Adding file {0} => {1}",
                 new String[]{source, target.replaceFirst("\\$\\{*INSTALL_PATH}*[/\\\\]+", "")});
     }
 
-    private void logMarkFileExecutable(String target)
-    {
+    private void logMarkFileExecutable(String target) {
         logger.log(Level.INFO, "Marked target file executable: {0}",
                 new String[]{target.replaceFirst("\\$\\{*INSTALL_PATH}*[/\\\\]+", "")});
     }
 
-    private void logMarkFileParsable(String target)
-    {
+    private void logMarkFileParsable(String target) {
         logger.log(Level.INFO, "Marked target file parsable: {0}",
                 new String[]{target.replaceFirst("\\$\\{*INSTALL_PATH}*[/\\\\]+", "")});
     }
 
-    private void logAddingPack(PackInfo packInfo)
-    {
+    private void logAddingPack(PackInfo packInfo) {
         logger.log(Level.INFO, "Adding pack {0} containing {1} files",
                 new String[]{packInfo.getPack().getName(), Integer.toString(packInfo.getPackFiles().size())});
     }
-    
-    private void logCombineOsLists(List<OsModel> parentOsList, List<OsModel> osList, List<OsModel> commonOsList)
-    {
+
+    private void logCombineOsLists(List<OsModel> parentOsList, List<OsModel> osList, List<OsModel> commonOsList) {
         logger.log(Level.INFO, "Combined parent''s OS constraints:\n\t{0}\nwith node''s:\n\t{1}\ninto:\n\t{2}",
                 new String[]{
-                    OsConstraintHelper.toOsContraintsString(parentOsList),
-                    OsConstraintHelper.toOsContraintsString(osList),
-                    OsConstraintHelper.toOsContraintsString(commonOsList)
+                        OsConstraintHelper.toOsContraintsString(parentOsList),
+                        OsConstraintHelper.toOsContraintsString(osList),
+                        OsConstraintHelper.toOsContraintsString(commonOsList)
                 }
         );
     }

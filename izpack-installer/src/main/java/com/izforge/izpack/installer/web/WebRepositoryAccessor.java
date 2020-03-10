@@ -21,6 +21,8 @@
 
 package com.izforge.izpack.installer.web;
 
+import com.izforge.izpack.util.FileUtil;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,8 +37,7 @@ import java.net.URL;
  * @author <a href="vralev@redhat.com">Vladimir Ralev</a>
  * @version $Revision: 1.1 $
  */
-public class WebRepositoryAccessor
-{
+public class WebRepositoryAccessor {
     /**
      * Files to be looked for at the repository base url
      */
@@ -56,8 +57,7 @@ public class WebRepositoryAccessor
      * @param url the base URL
      * @return the url
      */
-    public static String getCachedUrl(String url, String tempFolder) throws IOException
-    {
+    public static String getCachedUrl(String url, String tempFolder) throws IOException {
         byte[] raw = new byte[BUFFER_SIZE];
         WebAccessor webAccessor = new WebAccessor(null);
         InputStream in = webAccessor.openInputStream(new URL(url));
@@ -66,11 +66,22 @@ public class WebRepositoryAccessor
 
         tempDir.mkdirs();
 
-        File temp = File.createTempFile("izpacktempfile", "jar", new File(tempFolder));
+        String fileName = url.substring(url.lastIndexOf("/") + 1);
+
+        int flag = fileName.lastIndexOf(".");
+        String prefix = "izpacktempfile";
+        String suffix = ".jar";
+        if (flag > 0) {
+            prefix = fileName.substring(0, flag - 1) + "-";
+            suffix = "." + fileName.substring(flag + 1);
+        }
+
+//        File temp = File.createTempFile(prefix, suffix, new File(tempFolder));
+        File temp = FileUtil.getAbsoluteFile(fileName, tempFolder);
         FileOutputStream fos = new FileOutputStream(temp);
-        String path = "file:///" + temp.getAbsolutePath();
-        while (r > 0)
-        {
+//        String path = "file:///" + temp.getAbsolutePath();
+        String path = temp.getAbsolutePath();
+        while (r > 0) {
             fos.write(raw, 0, r);
             r = in.read(raw);
         }
@@ -79,4 +90,6 @@ public class WebRepositoryAccessor
 
         return path;
     }
+
+
 }

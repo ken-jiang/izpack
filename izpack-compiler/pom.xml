@@ -10,7 +10,10 @@
     <artifactId>izpack-compiler</artifactId>
     <name>IzPack compiler module</name>
     <dependencies>
-
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>izpack-installer</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>izpack-native</artifactId>
